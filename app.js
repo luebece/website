@@ -806,6 +806,92 @@ function renderTheory() {
     .join("");
 }
 
+function renderAcademyPatternSection(lesson) {
+  const patterns = lesson.examPatterns || [];
+  if (!patterns.length) return "";
+
+  return `
+    <section class="academy-section">
+      <h3>출제 패턴 해부</h3>
+      <div class="academy-pattern-grid">
+        ${patterns
+          .map(
+            (item) => `
+              <article class="academy-card pattern-card">
+                <h4>${escapeHtml(item.title)}</h4>
+                <p>${escapeHtml(item.body)}</p>
+                <ul>${(item.items || []).map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+              </article>
+            `,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderAcademyTraceRules(lesson) {
+  const rules = lesson.traceRules || [];
+  if (!rules.length) return "";
+
+  return `
+    <section class="academy-section">
+      <h3>손추적 규칙</h3>
+      <div class="trace-rule-grid">
+        ${rules
+          .map(
+            (item, index) => `
+              <article class="academy-card trace-rule-card">
+                <span class="pill">규칙 ${index + 1}</span>
+                <h4>${escapeHtml(item.title)}</h4>
+                <p>${escapeHtml(item.body)}</p>
+                ${item.code ? `<pre class="code-block"><code>${escapeHtml(item.code)}</code></pre>` : ""}
+              </article>
+            `,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderAcademyAnswerRules(lesson) {
+  const rules = lesson.answerRules || [];
+  if (!rules.length) return "";
+
+  return `
+    <section class="academy-section">
+      <h3>답안 작성 규칙</h3>
+      <div class="answer-rule-list">
+        ${rules
+          .map(
+            (item, index) => `
+              <article class="answer-rule-item">
+                <span class="pill">${index + 1}</span>
+                <p>${escapeHtml(item)}</p>
+              </article>
+            `,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderAcademyFinalChecklist(lesson) {
+  const items = lesson.finalChecklist || [];
+  if (!items.length) return "";
+
+  return `
+    <section class="academy-section">
+      <h3>시험 직전 체크</h3>
+      <article class="academy-card">
+        <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      </article>
+    </section>
+  `;
+}
+
 function renderCodeAcademy() {
   const academy = window.CODE_SQL_ACADEMY || {};
   const lesson = academy[currentAcademyLang] || academy.C;
@@ -848,6 +934,8 @@ function renderCodeAcademy() {
         : ""
     }
 
+    ${renderAcademyPatternSection(lesson)}
+
     <section class="academy-two">
       <article class="academy-card">
         <h3>읽는 순서</h3>
@@ -858,6 +946,8 @@ function renderCodeAcademy() {
         <ol>${lesson.writing.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>
       </article>
     </section>
+
+    ${renderAcademyTraceRules(lesson)}
 
     <section class="academy-section">
       <h3>핵심 문법</h3>
@@ -906,6 +996,8 @@ function renderCodeAcademy() {
       </div>
     </section>
 
+    ${renderAcademyAnswerRules(lesson)}
+
     <section class="academy-two">
       <article class="academy-card">
         <h3>바로 쓰는 템플릿</h3>
@@ -927,6 +1019,8 @@ function renderCodeAcademy() {
         <ul>${lesson.traps.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
       </article>
     </section>
+
+    ${renderAcademyFinalChecklist(lesson)}
   `;
 }
 
