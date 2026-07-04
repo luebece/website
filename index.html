@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="정처기 훈련기" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>정처기 실기 5일 합격 훈련기</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">2022년 1회부터 2026년 1회까지 공개 복원 범위 기반</p>
+        <h1>정처기 실기 5일 합격 훈련기</h1>
+        <p class="header-copy">
+          기출 원문을 복제하지 않고, 반복 출제되는 범위와 유형을 변형 문제로 압축했다.
+          매일 외우고, 풀고, 틀린 것만 다시 끌고 오는 프로그램이다.
+        </p>
+      </div>
+      <div class="header-panel">
+        <span>오늘 모드</span>
+        <strong id="todayMode">Day 1: DB/SQL</strong>
+        <button id="resetProgress" type="button" class="ghost-button">기록 초기화</button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="앱 메뉴">
+      <button class="tab active" data-view="dashboard" type="button">대시보드</button>
+      <button class="tab" data-view="theory" type="button">왕초보 이론서</button>
+      <button class="tab" data-view="codeacademy" type="button">코드 입문서</button>
+      <button class="tab" data-view="scope" type="button">통합 범위</button>
+      <button class="tab" data-view="drill" type="button">훈련장</button>
+      <button class="tab" data-view="mock" type="button">모의고사</button>
+      <button class="tab" data-view="survival" type="button">5일 루틴</button>
+    </nav>
+
+    <main>
+      <section id="dashboard" class="view active-view">
+        <div class="metric-grid">
+          <article class="metric">
+            <span>학습 완료</span>
+            <strong id="doneCount">0</strong>
+            <small>개념/문항</small>
+          </article>
+          <article class="metric">
+            <span>오답 태그</span>
+            <strong id="wrongCount">0</strong>
+            <small>다시 봐야 할 약점</small>
+          </article>
+          <article class="metric">
+            <span>최근 정답률</span>
+            <strong id="accuracy">0%</strong>
+            <small>최근 50문항 기준</small>
+          </article>
+          <article class="metric">
+            <span>모의고사</span>
+            <strong id="mockBest">-</strong>
+            <small>최고 점수</small>
+          </article>
+        </div>
+
+        <div class="dashboard-layout">
+          <section class="panel">
+            <div class="panel-title">
+              <h2>오늘의 처방</h2>
+              <select id="daySelect" aria-label="학습일 선택">
+                <option value="1">Day 1</option>
+                <option value="2">Day 2</option>
+                <option value="3">Day 3</option>
+                <option value="4">Day 4</option>
+                <option value="5">Day 5</option>
+              </select>
+            </div>
+            <div id="dayPlan" class="day-plan"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <h2>바로 할 일</h2>
+              <button id="panicStart" type="button" class="primary-button">60분 벼락치기</button>
+            </div>
+            <div class="rookie-guide">
+              <strong>아무것도 모르면 여기부터</strong>
+              <p>
+                처음 30분은 맞히려고 하지 말고, 풀이 순서를 읽고 힌트를 본 뒤 정답을 따라 쓰는 시간이다.
+                2회전부터 답을 가리고 맞힌다.
+              </p>
+              <button id="rookieStart" type="button" class="ghost-button">처음 30분 시작</button>
+            </div>
+            <div class="quick-actions">
+              <button class="action-card" data-jump="theory" type="button">
+                <strong>이론부터 보기</strong>
+                <span>왕초보 이론서로 전체 범위 먼저</span>
+              </button>
+              <button class="action-card" data-jump="codeacademy" type="button">
+                <strong>코드 읽는 법</strong>
+                <span>C, Java, Python, SQL을 처음부터</span>
+              </button>
+              <button class="action-card" data-jump="drill" data-mode="theory" type="button">
+                <strong>이론문제만 풀기</strong>
+                <span>코드 출력 없이 개념 단답만</span>
+              </button>
+              <button class="action-card" data-jump="drill" data-mode="must" type="button">
+                <strong>최빈출만 풀기</strong>
+                <span>코드, SQL, DB, 네트워크 핵심만</span>
+              </button>
+              <button class="action-card" data-jump="drill" data-mode="wrong" type="button">
+                <strong>오답만 다시</strong>
+                <span>저장된 약점 태그 중심</span>
+              </button>
+              <button class="action-card" data-jump="mock" type="button">
+                <strong>20문항 모의고사</strong>
+                <span>실전 단답 감각 점검</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="theory" class="view">
+        <section class="panel theory-intro">
+          <h2>문제만 풀기 전에 이것부터</h2>
+          <p>
+            이론은 필요하다. 다만 교재처럼 길게 읽으면 5일 안에 못 끝낸다.
+            아래 카드는 전체 범위를 <strong>초등학생도 따라갈 수 있는 말 -> 시험에 나오는 말 -> 예시 -> 외우는 법</strong>으로 압축한 이론서다.
+          </p>
+        </section>
+        <div class="toolbar">
+          <label class="search-box">
+            <span>이론 검색</span>
+            <input id="theorySearch" type="search" placeholder="C, Java, Python, SQL, 포인터, 오버라이딩, 슬라이싱..." />
+          </label>
+          <select id="theoryFilter" aria-label="개념 중요도 필터">
+            <option value="all">전체</option>
+            <option value="MAX">최우선</option>
+            <option value="HIGH">높음</option>
+            <option value="MID">중간</option>
+          </select>
+          <select id="theoryDomainFilter" aria-label="이론 분야 필터">
+            <option value="all">모든 분야</option>
+            <option value="요구사항">요구사항</option>
+            <option value="UI/UML">UI/UML</option>
+            <option value="설계/패턴">설계/패턴</option>
+            <option value="DB">DB</option>
+            <option value="SQL">SQL</option>
+            <option value="C">C</option>
+            <option value="Java">Java</option>
+            <option value="Python">Python</option>
+            <option value="언어/자료구조">언어/자료구조</option>
+            <option value="테스트/품질">테스트/품질</option>
+            <option value="형상/배포">형상/배포</option>
+            <option value="OS">OS</option>
+            <option value="네트워크">네트워크</option>
+            <option value="연계/API">연계/API</option>
+            <option value="보안">보안</option>
+            <option value="운영/패키징">운영/패키징</option>
+            <option value="신기술">신기술</option>
+          </select>
+          <span id="theoryCount" class="count-pill">0개</span>
+        </div>
+        <div id="theoryGrid" class="theory-grid"></div>
+      </section>
+
+      <section id="codeacademy" class="view">
+        <section class="panel theory-intro">
+          <h2>코드는 외우는 게 아니라 표로 읽는다</h2>
+          <p>
+            C, Java, Python, SQL은 용어를 아는 것보다 한 줄씩 실행 순서를 따라가는 힘이 중요하다.
+            여기서는 문법을 외우기 전에 변수표, 객체표, 슬라이싱 표, SQL 처리 순서를 먼저 잡는다.
+          </p>
+        </section>
+        <div class="toolbar">
+          <div class="academy-tabs" role="group" aria-label="코드 언어 선택">
+            <button class="academy-lang active" data-lang="C" type="button">C</button>
+            <button class="academy-lang" data-lang="Java" type="button">Java</button>
+            <button class="academy-lang" data-lang="Python" type="button">Python</button>
+            <button class="academy-lang" data-lang="SQL" type="button">SQL</button>
+          </div>
+          <button id="academyDrill" type="button" class="ghost-button">이 언어 문제 풀기</button>
+        </div>
+        <div id="codeAcademyContent" class="code-academy-content"></div>
+      </section>
+
+      <section id="scope" class="view">
+        <div class="toolbar">
+          <label class="search-box">
+            <span>검색</span>
+            <input id="scopeSearch" type="search" placeholder="SQL, 보안, Java, 정규화..." />
+          </label>
+          <select id="scopeFilter" aria-label="범위 필터">
+            <option value="all">전체</option>
+            <option value="MAX">최우선</option>
+            <option value="HIGH">높음</option>
+            <option value="MID">중간</option>
+          </select>
+        </div>
+        <div id="scopeGrid" class="scope-grid"></div>
+        <section class="panel source-panel">
+          <h2>확인한 출처</h2>
+          <p>
+            공식 출제기준과 공개 복원 페이지를 대조해 범위를 합쳤다. 앱 문항은 학습용 변형 문제이며,
+            공개 기출 원문 전체를 그대로 싣지 않는다.
+          </p>
+          <div id="sourceList" class="source-list"></div>
+        </section>
+      </section>
+
+      <section id="drill" class="view">
+        <div class="toolbar">
+          <div class="segmented" role="group" aria-label="훈련 모드">
+            <button class="mode active" data-mode="all" type="button">전체</button>
+            <button class="mode" data-mode="must" type="button">최빈출</button>
+            <button class="mode" data-mode="theory" type="button">이론문제</button>
+            <button class="mode" data-mode="code" type="button">코드</button>
+            <button class="mode" data-mode="sql" type="button">SQL/DB</button>
+            <button class="mode" data-mode="netos" type="button">네트워크/OS</button>
+            <button class="mode" data-mode="wrong" type="button">오답</button>
+          </div>
+          <button id="nextQuestion" type="button" class="ghost-button">다음 문제</button>
+        </div>
+
+        <article class="question-panel">
+          <div class="question-head">
+            <span id="questionDomain" class="pill">-</span>
+            <span id="questionLevel" class="pill muted">-</span>
+          </div>
+          <pre id="questionText" class="question-text"></pre>
+          <div id="solveGuide" class="solve-guide"></div>
+          <div id="hintBox" class="hint-box" hidden></div>
+          <label class="answer-box">
+            <span>답</span>
+            <input id="answerInput" autocomplete="off" placeholder="짧게 쓰면 된다. 예: DISTINCT" />
+          </label>
+          <div class="button-row">
+            <button id="checkAnswer" type="button" class="primary-button">채점</button>
+            <button id="showHint" type="button" class="ghost-button">힌트</button>
+            <button id="showAnswer" type="button" class="ghost-button">정답 보기</button>
+            <button id="markKnown" type="button" class="ghost-button">외웠음</button>
+          </div>
+          <div id="feedback" class="feedback"></div>
+        </article>
+
+        <aside class="panel weak-panel">
+          <div class="panel-title">
+            <h2>약점 태그</h2>
+            <button id="clearWrongs" type="button" class="ghost-button">오답 비우기</button>
+          </div>
+          <div id="weakTags" class="tag-cloud"></div>
+        </aside>
+      </section>
+
+      <section id="mock" class="view">
+        <div class="mock-layout">
+          <section class="panel">
+            <div class="panel-title">
+              <h2>20문항 실전 모의고사</h2>
+              <button id="startMock" type="button" class="primary-button">새 시험 시작</button>
+            </div>
+            <div id="mockArea" class="mock-area">
+              <p class="empty-state">새 시험을 누르면 최빈출 비율을 높여 20문항을 섞어 낸다.</p>
+            </div>
+          </section>
+          <aside class="panel">
+            <h2>채점 기준</h2>
+            <ul class="plain-list">
+              <li>60점 이상이 목표선이다.</li>
+              <li>코드 출력, SQL, DB, 네트워크/OS는 틀리면 바로 오답 태그에 들어간다.</li>
+              <li>부분답이 있는 문항은 핵심 키워드를 모두 포함해야 정답 처리한다.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section id="survival" class="view">
+        <div class="survival-grid">
+          <section class="panel">
+            <h2>5일 생존 루틴</h2>
+            <div id="routineList" class="routine-list"></div>
+          </section>
+          <section class="panel">
+            <h2>답안 작성 규칙</h2>
+            <ul class="plain-list">
+              <li>영문 약자는 대문자로 또박또박 쓴다. 예: ISMS, IPSec, OSPF.</li>
+              <li>SQL 빈칸은 예약어 철자를 먼저 맞힌다. DISTINCT, CONSTRAINT, REFERENCES 같은 단어가 자주 돈다.</li>
+              <li>코드 출력은 변수표를 만들고 한 줄씩만 따라간다. 머릿속 점프 금지.</li>
+              <li>정의형 문제는 “무엇을, 왜, 어떻게” 세 단어만 잡아도 답이 보인다.</li>
+              <li>모르는 문제는 30초 안에 넘기고, 끝에서 다시 온다.</li>
+            </ul>
+          </section>
+          <section class="panel wide">
+            <h2>마지막 60분 압축</h2>
+            <div id="panicList" class="panic-list"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="theory-deep.js"></script>
+    <script src="theory-mega.js"></script>
+    <script src="code-sql-mastery.js"></script>
+    <script src="code-sql-conquest.js"></script>
+    <script src="app.js"></script>
+    <script src="pwa.js"></script>
+  </body>
+</html>

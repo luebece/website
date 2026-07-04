@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">정보처리기사 실기 훈련기 아이콘</title>
+  <desc id="desc">시험 학습 앱을 위한 책과 체크 표시 아이콘</desc>
+  <rect width="512" height="512" rx="108" fill="#0f172a"/>
+  <path d="M132 132h188c33 0 60 27 60 60v188H192c-33 0-60-27-60-60V132Z" fill="#f8fafc"/>
+  <path d="M172 166h138c21 0 38 17 38 38v138H210c-21 0-38-17-38-38V166Z" fill="#38bdf8"/>
+  <path d="M212 246l48 48 92-108" fill="none" stroke="#0f172a" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M164 374h216" stroke="#f8fafc" stroke-width="28" stroke-linecap="round"/>
+  <path d="M164 418h168" stroke="#38bdf8" stroke-width="28" stroke-linecap="round"/>
+</svg>
