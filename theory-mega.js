@@ -149,7 +149,7 @@
     ["mega-sql-002", "MAX", "SQL", "DML", "데이터를 조회, 삽입, 수정, 삭제하는 SQL 분류다.", "SELECT, INSERT, UPDATE, DELETE.", ["SQL", "DML"], ["Data Manipulation Language"]],
     ["mega-sql-003", "MAX", "SQL", "DCL", "권한을 부여하거나 회수하는 SQL 분류다.", "GRANT, REVOKE.", ["SQL", "DCL"], ["Data Control Language"]],
     ["mega-sql-004", "MAX", "SQL", "TCL", "트랜잭션을 확정하거나 취소하는 SQL 분류다.", "COMMIT, ROLLBACK, SAVEPOINT.", ["SQL", "TCL"], ["Transaction Control Language"]],
-    ["mega-sql-005", "MAX", "SQL", "SELECT 실행 순서", "FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY 순서로 생각한다.", "어디서, 걸러, 묶고, 그룹 걸러, 보여 주고, 정렬.", ["SELECT", "실행순서"], []],
+    ["mega-sql-005", "MAX", "SQL", "SELECT 실행 순서", "FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY 순서로 생각한다.", "어디서, 걸러, 묶고, 그룹 걸러, 보여 주고, 정렬.", ["SELECT", "실행순서"], ["SQL 실행 순서"]],
     ["mega-sql-006", "MAX", "SQL", "GROUP BY", "같은 값을 가진 행을 그룹으로 묶는 SQL 절이다.", "부서별, 학과별 같은 말이 나오면 GROUP BY.", ["GROUP BY", "그룹"], []],
     ["mega-sql-007", "MAX", "SQL", "HAVING", "GROUP BY로 묶은 그룹에 조건을 거는 SQL 절이다.", "그룹 조건은 HAVING.", ["HAVING", "그룹조건"], []],
     ["mega-sql-008", "MAX", "SQL", "WHERE", "행 하나하나에 조건을 걸어 필터링하는 SQL 절이다.", "그룹 전 조건은 WHERE.", ["WHERE", "조건"], []],

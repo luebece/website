@@ -18,9 +18,45 @@ const scripts = [
   "app.js",
 ];
 
+const bootStoredState = {
+  version: 2,
+  day: 3,
+  done: { "gm-java-011": true },
+  wrong: { "x-c-003": 2 },
+  checks: { "day-3-0": true },
+  log: [{ id: "x-c-003", correct: false, time: 1_700_000_000_000 }],
+  mockBest: 65,
+  mastery: {},
+  mockDraft: {
+    id: "boot-restore-test",
+    itemIds: ["x-c-003", "gm-java-011"],
+    index: 1,
+    answers: { "x-c-003": "6 5" },
+    flags: { "gm-java-011": true },
+    startedAt: 1_700_000_000_000,
+    deadline: 4_700_000_000_000,
+  },
+  mockHistory: [
+    {
+      id: "history-restore-test",
+      completedAt: 1_700_000_100_000,
+      strictScore: 50,
+      learningScore: 62.5,
+      timedOut: false,
+      results: [
+        { itemId: "x-c-003", input: "6 5", correct: true, points: 5, maxPoints: 5 },
+        { itemId: "gm-java-011", input: "20", correct: false, points: 0, maxPoints: 5 },
+        { itemId: "unknown", input: "discard", correct: true, points: 5, maxPoints: 5 },
+      ],
+    },
+  ],
+};
+
 const context = {
   localStorage: {
-    getItem: () => null,
+    getItem: (key) => key === "jeongcheogi_5day_trainer_v1"
+      ? JSON.stringify(bootStoredState)
+      : null,
     setItem: () => {},
   },
   window: {},
@@ -35,6 +71,16 @@ const audit = context.window.JEONGCHEOGI_AUDIT;
 const coverage = context.window.EXAM_COVERAGE || [];
 const skills = context.window.EXAM_SKILLS || {};
 const items = [...audit.practice, ...audit.theoryPractice];
+
+const bootRestored = audit.stateSnapshot();
+assert.equal(bootRestored.day, 3, "saved day was not restored during app initialization");
+assert.equal(bootRestored.wrong["x-c-003"], 2, "saved wrong answer was not restored");
+assert.equal(bootRestored.mockDraft.id, "boot-restore-test", "mock draft was not restored");
+assert.equal(bootRestored.mockDraft.answers["x-c-003"], "6 5");
+assert.equal(bootRestored.mockDraft.flags["gm-java-011"], true);
+assert.equal(bootRestored.mockHistory.length, 1);
+assert.equal(bootRestored.mockHistory[0].results.length, 2);
+assert.equal(bootRestored.mockHistory[0].results[1].input, "20");
 
 assert.deepEqual(
   [...audit.scope.map((item) => item.officialNo)].sort((a, b) => a - b),
@@ -69,6 +115,74 @@ assert.equal(items.length, 1137, "total graded item count changed");
 
 const ids = items.map((item) => item.id);
 assert.equal(new Set(ids).size, ids.length, "duplicate graded item id");
+const validTypes = new Set([
+  "code",
+  "db",
+  "design",
+  "integration",
+  "netos",
+  "package",
+  "req",
+  "security",
+  "server",
+  "sql",
+  "test",
+  "theory",
+]);
+const validLevels = new Set(["must", "high", "mid"]);
+const forbiddenControls = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/;
+for (const item of items) {
+  assert.match(item.id, /^[a-z0-9-]+$/, `${item.id}: invalid id format`);
+  assert.ok(validTypes.has(item.type), `${item.id}: unknown type ${item.type}`);
+  assert.ok(validLevels.has(item.level), `${item.id}: unknown level ${item.level}`);
+  assert.ok(String(item.domain).trim(), `${item.id}: empty domain`);
+  assert.ok(String(item.question).trim().length >= 5, `${item.id}: question is too short`);
+  assert.ok(String(item.explain).trim().length >= 5, `${item.id}: explanation is too short`);
+  assert.ok(!forbiddenControls.test(item.question), `${item.id}: control character in question`);
+  assert.ok(!forbiddenControls.test(item.answer), `${item.id}: control character in answer`);
+  assert.ok(Array.isArray(item.tags) && item.tags.length > 0, `${item.id}: missing tags`);
+  assert.equal(
+    new Set(item.tags.map((tag) => String(tag).normalize("NFKC").toLowerCase())).size,
+    item.tags.length,
+    `${item.id}: duplicate tags`,
+  );
+  assert.ok((item.accept || []).every((alias) => typeof alias === "string" && alias.trim()), `${item.id}: invalid alias`);
+  if (item.groups) {
+    assert.ok(item.groups.length >= 2, `${item.id}: grouped answer has fewer than two groups`);
+    assert.ok(
+      item.groups.every(
+        (group) => Array.isArray(group) && group.length && group.every((alias) => String(alias).trim()),
+      ),
+      `${item.id}: invalid grouped answer`,
+    );
+  }
+}
+
+const exactQuestionGroups = new Map();
+for (const item of items) {
+  const key = item.question.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+  if (!exactQuestionGroups.has(key)) exactQuestionGroups.set(key, []);
+  exactQuestionGroups.get(key).push(item);
+}
+let compatibleDuplicateQuestions = 0;
+for (const duplicates of exactQuestionGroups.values()) {
+  if (duplicates.length < 2) continue;
+  for (const source of duplicates) {
+    for (const target of duplicates) {
+      assert.ok(
+        engine.matches(source.answer, target),
+        `${source.id}/${target.id}: identical question has conflicting answers`,
+      );
+    }
+  }
+  compatibleDuplicateQuestions += 1;
+}
+
+const explicitOutputPrompt = /출력값|출력 값|출력 결과|실행 결과|결과값/;
+for (const item of items.filter((candidate) => explicitOutputPrompt.test(candidate.question))) {
+  if (item.groups) continue;
+  assert.equal(engine.answerMode(item), "output", `${item.id}: explicit output prompt is not strict output`);
+}
 const questionAnswerKeys = audit.practice.map((item) =>
   `${item.question}||${item.answer}`.replace(/\s+/g, " ").trim(),
 );
@@ -78,6 +192,7 @@ assert.equal(
   "duplicate manual practice question and answer",
 );
 
+let rejectedOutputAliases = 0;
 for (const item of items) {
   assert.ok(item.answer, `${item.id}: empty canonical answer`);
   assert.ok(item.explain, `${item.id}: empty explanation`);
@@ -87,12 +202,22 @@ for (const item of items) {
     `${item.id}: wrapped garbage accepted`,
   );
 
-  if (!item.groups) {
+  if (!item.groups && engine.answerMode(item) !== "output") {
     for (const alias of item.accept) {
       assert.ok(engine.matches(alias, item), `${item.id}: declared alias rejected: ${alias}`);
     }
   }
+
+  if (engine.answerMode(item) === "output") {
+    for (const alias of item.accept || []) {
+      if (engine.normalizeOutput(alias) === engine.normalizeOutput(item.answer)) continue;
+      assert.ok(!engine.matches(alias, item), `${item.id}: unsafe output alias accepted: ${alias}`);
+      rejectedOutputAliases += 1;
+    }
+  }
 }
+
+assert.ok(rejectedOutputAliases >= 60, "too few unsafe output aliases were regression-tested");
 
 const ordered = items.filter((item) => engine.answerMode(item) === "ordered");
 let reversedOrderedChecked = 0;
@@ -143,10 +268,62 @@ const caseSensitiveOutput = {
 assert.ok(engine.matches("Ab", caseSensitiveOutput));
 assert.ok(!engine.matches("ab", caseSensitiveOutput), "output letter case was ignored");
 
+const groupedScoreFixture = {
+  answer: "REDO, UNDO",
+  accept: [],
+  groups: [["redo"], ["undo"]],
+  question: "회복 연산 두 가지를 쓰시오.",
+  type: "db",
+};
+assert.equal(engine.score("REDO, UNDO", groupedScoreFixture).points, 5);
+assert.equal(engine.score("REDO", groupedScoreFixture).points, 2.5);
+assert.equal(
+  engine.score("틀림REDO오답", groupedScoreFixture).points,
+  0,
+  "partial scoring accepted wrapped garbage",
+);
+
+const orderedScoreFixture = {
+  ...groupedScoreFixture,
+  question: "REDO와 UNDO를 이 순서대로 쓰시오.",
+};
+assert.equal(engine.answerMode(orderedScoreFixture), "ordered");
+assert.equal(
+  engine.score("UNDO, REDO", orderedScoreFixture).points,
+  0,
+  "reversed ordered answer received partial points",
+);
+
 const countStar = audit.practice.find((item) => item.id === "cq-sql-002");
 assert.ok(countStar, "COUNT(*) fixture missing");
 assert.ok(engine.matches("COUNT(*)", countStar));
 assert.ok(!engine.matches("COUNT", countStar), "COUNT accepted in place of COUNT(*)");
+
+const postIncrementOutput = audit.practice.find((item) => item.id === "x-c-003");
+assert.ok(postIncrementOutput, "x-c-003 fixture missing");
+assert.ok(engine.matches("6 5", postIncrementOutput));
+assert.ok(!engine.matches("6 3", postIncrementOutput), "wrong x-c-003 alias was accepted");
+assert.ok(!engine.matches("63", postIncrementOutput), "separator-free x-c-003 alias was accepted");
+
+const integerDivisionOutput = audit.practice.find((item) => item.id === "gm-java-011");
+assert.ok(integerDivisionOutput, "gm-java-011 fixture missing");
+assert.ok(engine.matches("2.0", integerDivisionOutput));
+assert.ok(!engine.matches("20", integerDivisionOutput), "decimal-free Java output was accepted");
+
+const singletonTerm = audit.practice.find((item) => item.id === "code-008");
+assert.ok(singletonTerm, "code-008 fixture missing");
+assert.equal(engine.answerMode(singletonTerm), "term", "code concept was treated as program output");
+assert.ok(engine.matches("싱글톤", singletonTerm), "valid code-concept alias was rejected");
+
+const domainAnalysis = audit.analyzeMockDomains([
+  { item: postIncrementOutput, correct: true, points: 5, maxPoints: 5 },
+  { item: integerDivisionOutput, correct: false, points: 2.5, maxPoints: 5 },
+]);
+assert.equal(domainAnalysis.length, 2);
+assert.deepEqual(
+  Array.from(domainAnalysis.map((row) => row.strictRate)).sort((a, b) => a - b),
+  [0, 100],
+);
 
 const undefinedIncrement = audit.practice.filter((item) =>
   /x\+\+\s*\+\s*\+\+x|\+\+x\s*\+\s*x\+\+/.test(item.question),
@@ -169,6 +346,62 @@ const modeCounts = items.reduce((counts, item) => {
   return counts;
 }, {});
 
+const transitionNow = 1_700_000_000_000;
+const firstCorrect = audit.masteryTransition(null, true, transitionNow);
+assert.equal(firstCorrect.stage, 1);
+assert.equal(firstCorrect.nextReview, transitionNow + 24 * 60 * 60 * 1000);
+const secondCorrect = audit.masteryTransition(firstCorrect, true, transitionNow);
+assert.equal(secondCorrect.stage, 2);
+assert.equal(secondCorrect.nextReview, transitionNow + 3 * 24 * 60 * 60 * 1000);
+const afterWrong = audit.masteryTransition(secondCorrect, false, transitionNow);
+assert.equal(afterWrong.stage, 1);
+assert.equal(afterWrong.streak, 0);
+assert.equal(afterWrong.nextReview, transitionNow + 10 * 60 * 1000);
+assert.ok(!audit.isMasteryDue(afterWrong, afterWrong.nextReview - 1));
+assert.ok(audit.isMasteryDue(afterWrong, afterWrong.nextReview));
+
+const firstItemId = items[0].id;
+const secondItemId = items[1].id;
+const normalizedDraft = audit.normalizeMockDraft({
+  id: "test-draft",
+  itemIds: [firstItemId, secondItemId, "unknown", firstItemId],
+  index: 99,
+  answers: { [firstItemId]: "answer", unknown: "discard" },
+  flags: { [secondItemId]: true, unknown: true },
+  startedAt: transitionNow,
+  deadline: transitionNow + 150 * 60 * 1000,
+});
+assert.deepEqual(Array.from(normalizedDraft.itemIds), [firstItemId, secondItemId]);
+assert.equal(normalizedDraft.index, 1);
+assert.equal(normalizedDraft.answers[firstItemId], "answer");
+assert.equal(normalizedDraft.answers.unknown, undefined);
+assert.equal(normalizedDraft.flags[secondItemId], true);
+
+const backupState = audit.emptyState();
+backupState.day = 4;
+backupState.done[firstItemId] = true;
+backupState.wrong[secondItemId] = 2;
+backupState.mockDraft = normalizedDraft;
+const backup = audit.createExportPayload(backupState);
+assert.equal(backup.app, "jeongcheogi-trainer");
+assert.equal(backup.version, 2);
+const imported = audit.normalizeImportedState(backup);
+assert.equal(imported.day, 4);
+assert.equal(imported.done[firstItemId], true);
+assert.equal(imported.wrong[secondItemId], 2);
+assert.equal(imported.mockBest, null, "null mock score was converted to zero");
+assert.equal(imported.mastery[firstItemId].stage, 2, "legacy done record was not migrated");
+assert.equal(imported.mockDraft.id, "test-draft");
+const restoredFromStorage = audit.readStateFromStorage({
+  getItem: (key) => key === "jeongcheogi_5day_trainer_v1" ? JSON.stringify(backupState) : null,
+});
+assert.equal(restoredFromStorage.day, 4);
+assert.equal(restoredFromStorage.mockDraft.answers[firstItemId], "answer");
+assert.throws(
+  () => audit.normalizeImportedState({ app: "other-app", state: {} }),
+  /이 앱에서 내보낸/,
+);
+
 const html = fs.readFileSync("index.html", "utf8");
 const serviceWorker = fs.readFileSync("sw.js", "utf8");
 const assetRefs = [
@@ -178,14 +411,27 @@ const assetRefs = [
   ),
 ];
 for (const ref of assetRefs) {
-  assert.ok(ref.endsWith("?v=13"), `unversioned executable asset: ${ref}`);
+  assert.ok(ref.endsWith("?v=14"), `unversioned executable asset: ${ref}`);
   assert.ok(fs.existsSync(ref.split("?")[0]), `missing executable asset: ${ref}`);
   assert.ok(serviceWorker.includes(`"./${ref}"`), `service worker does not cache: ${ref}`);
 }
 assert.ok(
-  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v13"'),
+  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v14"'),
   "service worker cache version mismatch",
 );
+for (const id of [
+  "reviewDueCount",
+  "exportProgress",
+  "importProgress",
+  "importProgressButton",
+  "mockArea",
+  "mockHistoryList",
+  "mockHistoryDetail",
+  "mockTrend",
+]) {
+  assert.ok(html.includes(`id="${id}"`), `missing required UI control: ${id}`);
+}
+assert.ok(html.includes('data-mode="review"'), "review drill mode is missing");
 assert.ok(
   fs.readFileSync("app.js", "utf8").includes("2026.1.1~2026.12.31"),
   "2026 official criteria source missing",
@@ -196,6 +442,8 @@ console.log(
     {
       gradedItems: items.length,
       maliciousWrappersRejected: items.length,
+      unsafeOutputAliasesRejected: rejectedOutputAliases,
+      compatibleDuplicateQuestions,
       orderedReversalsRejected: reversedOrderedChecked,
       coverageReady: `${coverage.filter((item) => item.ready).length}/${coverage.length}`,
       modeCounts,

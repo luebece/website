@@ -33,8 +33,12 @@
     return unique([item.answer, ...(item.accept || [])].map(String));
   }
 
+  function outputCandidates(item) {
+    return unique([item.answer, ...(item.outputAccept || [])].map(String));
+  }
+
   function isSymbolSensitiveAnswer(item) {
-    if (item.type === "code" || OUTPUT_HINT.test(String(item.question || ""))) return true;
+    if (OUTPUT_HINT.test(String(item.question || ""))) return true;
     if (
       item.type === "sql" &&
       flatCandidates(item).some((candidate) => /[()*%_'"<>=]/.test(String(candidate)))
@@ -102,6 +106,63 @@
     return false;
   }
 
+  function bitCount(value) {
+    let count = 0;
+    let remaining = value;
+    while (remaining) {
+      count += remaining & 1;
+      remaining >>>= 1;
+    }
+    return count;
+  }
+
+  function consumeSetPartial(remaining, lists, usedMask, memo) {
+    if (!remaining.length) return bitCount(usedMask);
+    const key = `${usedMask}:${remaining}`;
+    if (memo.has(key)) return memo.get(key);
+
+    let best = -1;
+    for (let index = 0; index < lists.length; index += 1) {
+      if (usedMask & (1 << index)) continue;
+      for (const candidate of lists[index]) {
+        if (!remaining.startsWith(candidate)) continue;
+        best = Math.max(
+          best,
+          consumeSetPartial(
+            remaining.slice(candidate.length),
+            lists,
+            usedMask | (1 << index),
+            memo,
+          ),
+        );
+      }
+    }
+    memo.set(key, best);
+    return best;
+  }
+
+  function consumeOrderedPartial(remaining, lists, nextIndex, memo) {
+    if (!remaining.length) return 0;
+    const key = `${nextIndex}:${remaining}`;
+    if (memo.has(key)) return memo.get(key);
+
+    let best = -1;
+    for (let index = nextIndex; index < lists.length; index += 1) {
+      for (const candidate of lists[index]) {
+        if (!remaining.startsWith(candidate)) continue;
+        const rest = consumeOrderedPartial(
+          remaining.slice(candidate.length),
+          lists,
+          index + 1,
+          memo,
+        );
+        if (rest >= 0) best = Math.max(best, rest + 1);
+      }
+    }
+    memo.set(key, best);
+    return best;
+  }
+
   function answerMode(item) {
     if (item.answerMode) return item.answerMode;
     if (item.groups?.length) {
@@ -117,7 +178,7 @@
 
     if (mode === "output") {
       const normalizedUser = normalizeOutput(rawUser);
-      const correct = flatCandidates(item).some(
+      const correct = outputCandidates(item).some(
         (candidate) => normalizeOutput(candidate) === normalizedUser,
       );
       return { correct, mode, reason: correct ? "exact-output" : "output-mismatch" };
@@ -149,11 +210,63 @@
     return { correct, mode, reason: correct ? `${mode}-match` : `${mode}-mismatch` };
   }
 
+  function score(user, item, maxPoints = 5) {
+    const maximum = Number.isFinite(maxPoints) && maxPoints > 0 ? maxPoints : 5;
+    const result = evaluate(user, item);
+    const totalGroups = item.groups?.length || 1;
+    if (result.correct) {
+      return {
+        ...result,
+        points: maximum,
+        maxPoints: maximum,
+        matchedGroups: totalGroups,
+        totalGroups,
+      };
+    }
+
+    if (!item.groups?.length) {
+      return {
+        ...result,
+        points: 0,
+        maxPoints: maximum,
+        matchedGroups: 0,
+        totalGroups,
+      };
+    }
+
+    const normalizedUser = compactTerm(user);
+    const lists = groupCandidates(item);
+    if (!normalizedUser || !lists.length || lists.some((list) => !list.length) || lists.length > 20) {
+      return {
+        ...result,
+        points: 0,
+        maxPoints: maximum,
+        matchedGroups: 0,
+        totalGroups,
+      };
+    }
+
+    const matchedGroups =
+      result.mode === "ordered"
+        ? consumeOrderedPartial(normalizedUser, lists, 0, new Map())
+        : consumeSetPartial(normalizedUser, lists, 0, new Map());
+    const safeMatches = Math.max(0, matchedGroups);
+    const points = Math.round(((maximum * safeMatches) / totalGroups) * 2) / 2;
+    return {
+      ...result,
+      points,
+      maxPoints: maximum,
+      matchedGroups: safeMatches,
+      totalGroups,
+    };
+  }
+
   global.ANSWER_ENGINE = Object.freeze({
     answerMode,
     compactTerm,
     evaluate,
     matches: (user, item) => evaluate(user, item).correct,
     normalizeOutput,
+    score,
   });
 })(typeof window === "undefined" ? globalThis : window);

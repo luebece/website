@@ -522,10 +522,24 @@ const PRACTICE = [
 PRACTICE.push(...(window.CODE_SQL_PRACTICE_ROWS || []).map((row) => card(...row)));
 
 const STORAGE_KEY = "jeongcheogi_5day_trainer_v1";
-let state = loadState();
+const STATE_VERSION = 2;
+const BACKUP_APP_ID = "jeongcheogi-trainer";
+const MOCK_DURATION_MS = 150 * 60 * 1000;
+const REVIEW_INTERVALS_MS = [
+  10 * 60 * 1000,
+  24 * 60 * 60 * 1000,
+  3 * 24 * 60 * 60 * 1000,
+  7 * 24 * 60 * 60 * 1000,
+  14 * 24 * 60 * 60 * 1000,
+  30 * 24 * 60 * 60 * 1000,
+];
+let state;
 let currentMode = "all";
 let currentQuestion = null;
 let mockSession = null;
+let mockTimerId = null;
+let lastMockResult = null;
+let selectedMockHistoryId = null;
 let currentAcademyLang = "C";
 let currentCoverageSkill = null;
 let currentQuestionGraded = false;
@@ -543,7 +557,7 @@ function card(id, domain, type, level, question, accept, answer, explain, tags, 
     groups: groupAccept,
     answer,
     explain,
-    tags,
+    tags: [...new Set((tags || []).map((tag) => String(tag).trim()).filter(Boolean))],
     answerMode: options.answerMode,
   };
 }
@@ -581,24 +595,242 @@ const THEORY_PRACTICE = THEORY_ITEMS.filter(
   ),
 );
 
-function loadState() {
+state = loadState();
+mockSession = restoreMockSession(state.mockDraft);
+
+function emptyState() {
+  return {
+    version: STATE_VERSION,
+    day: 1,
+    done: {},
+    wrong: {},
+    checks: {},
+    log: [],
+    mockBest: null,
+    mastery: {},
+    mockDraft: null,
+    mockHistory: [],
+  };
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function practiceItemMap() {
+  return new Map([...PRACTICE, ...THEORY_PRACTICE].map((item) => [item.id, item]));
+}
+
+function normalizeMockDraft(value) {
+  if (!isRecord(value) || !Array.isArray(value.itemIds)) return null;
+  const knownIds = practiceItemMap();
+  const itemIds = [...new Set(value.itemIds.map(String))]
+    .filter((id) => knownIds.has(id))
+    .slice(0, 20);
+  if (!itemIds.length) return null;
+
+  const startedAt = Number.isFinite(value.startedAt) && value.startedAt > 0
+    ? value.startedAt
+    : Date.now();
+  const deadline = Number.isFinite(value.deadline) && value.deadline > startedAt
+    ? value.deadline
+    : startedAt + MOCK_DURATION_MS;
+  const answers = {};
+  const flags = {};
+  itemIds.forEach((id) => {
+    if (isRecord(value.answers) && typeof value.answers[id] === "string") {
+      answers[id] = value.answers[id].slice(0, 10000);
+    }
+    if (isRecord(value.flags) && value.flags[id] === true) flags[id] = true;
+  });
+
+  return {
+    version: 1,
+    id: typeof value.id === "string" ? value.id.slice(0, 80) : `mock-${startedAt}`,
+    itemIds,
+    index: Math.min(Math.max(Math.trunc(Number(value.index) || 0), 0), itemIds.length - 1),
+    answers,
+    flags,
+    startedAt,
+    deadline,
+  };
+}
+
+function normalizeState(value) {
+  const source = isRecord(value) ? value : {};
+  const result = emptyState();
+  const knownIds = practiceItemMap();
+  result.day = Math.min(Math.max(Math.trunc(Number(source.day) || 1), 1), 5);
+
+  if (isRecord(source.done)) {
+    Object.entries(source.done).forEach(([id, done]) => {
+      if (knownIds.has(id) && done === true) result.done[id] = true;
+    });
+  }
+  if (isRecord(source.wrong)) {
+    Object.entries(source.wrong).forEach(([id, count]) => {
+      const safeCount = Math.min(Math.max(Math.trunc(Number(count) || 0), 0), 999);
+      if (knownIds.has(id) && safeCount) result.wrong[id] = safeCount;
+    });
+  }
+  if (isRecord(source.checks)) {
+    Object.entries(source.checks).forEach(([id, checked]) => {
+      if (/^day-[1-5]-\d+$/.test(id) && checked === true) result.checks[id] = true;
+    });
+  }
+  if (Array.isArray(source.log)) {
+    result.log = source.log
+      .filter((entry) => isRecord(entry) && knownIds.has(String(entry.id)))
+      .slice(-1000)
+      .map((entry) => ({
+        id: String(entry.id),
+        correct: entry.correct === true,
+        time: Number.isFinite(entry.time) && entry.time > 0 ? entry.time : Date.now(),
+      }));
+  }
+
+  const mockBest = source.mockBest === null || source.mockBest === undefined
+    ? null
+    : Number(source.mockBest);
+  result.mockBest = Number.isFinite(mockBest)
+    ? Math.min(Math.max(Math.round(mockBest), 0), 100)
+    : null;
+
+  if (isRecord(source.mastery)) {
+    Object.entries(source.mastery).forEach(([id, record]) => {
+      if (!knownIds.has(id) || !isRecord(record)) return;
+      result.mastery[id] = {
+        stage: Math.min(Math.max(Math.trunc(Number(record.stage) || 0), 0), 5),
+        streak: Math.min(Math.max(Math.trunc(Number(record.streak) || 0), 0), 999),
+        attempts: Math.min(Math.max(Math.trunc(Number(record.attempts) || 0), 0), 99999),
+        correct: Math.min(Math.max(Math.trunc(Number(record.correct) || 0), 0), 99999),
+        lastSeen: Number.isFinite(record.lastSeen) && record.lastSeen > 0 ? record.lastSeen : 0,
+        nextReview: Number.isFinite(record.nextReview) && record.nextReview > 0
+          ? record.nextReview
+          : 0,
+      };
+    });
+  }
+
+  Object.keys(result.done).forEach((id) => {
+    if (!result.mastery[id]) {
+      result.mastery[id] = {
+        stage: 2,
+        streak: 1,
+        attempts: 1,
+        correct: 1,
+        lastSeen: 0,
+        nextReview: 0,
+      };
+    }
+  });
+  Object.keys(result.wrong).forEach((id) => {
+    if (!result.mastery[id]) {
+      result.mastery[id] = {
+        stage: 0,
+        streak: 0,
+        attempts: result.wrong[id],
+        correct: 0,
+        lastSeen: 0,
+        nextReview: 0,
+      };
+    }
+  });
+
+  result.mockDraft = normalizeMockDraft(source.mockDraft);
+  if (Array.isArray(source.mockHistory)) {
+    result.mockHistory = source.mockHistory
+      .filter((entry) => isRecord(entry))
+      .slice(-20)
+      .map((entry) => {
+        const results = Array.isArray(entry.results)
+          ? entry.results
+              .filter((item) => isRecord(item) && knownIds.has(String(item.itemId)))
+              .slice(0, 20)
+              .map((item) => ({
+                itemId: String(item.itemId),
+                input: typeof item.input === "string" ? item.input.slice(0, 10000) : "",
+                correct: item.correct === true,
+                points: Math.min(Math.max(Number(item.points) || 0, 0), 5),
+                maxPoints: 5,
+              }))
+          : [];
+        return {
+          id: String(entry.id || "").slice(0, 80),
+          completedAt: Number.isFinite(entry.completedAt) ? entry.completedAt : 0,
+          strictScore: Math.min(Math.max(Number(entry.strictScore) || 0, 0), 100),
+          learningScore: Math.min(Math.max(Number(entry.learningScore) || 0, 0), 100),
+          timedOut: entry.timedOut === true,
+          results,
+        };
+      });
+  }
+  return result;
+}
+
+function normalizeImportedState(payload) {
+  if (!isRecord(payload) || payload.app !== BACKUP_APP_ID || !isRecord(payload.state)) {
+    throw new Error("이 앱에서 내보낸 학습 기록 파일이 아닙니다.");
+  }
+  return normalizeState(payload.state);
+}
+
+function readStateFromStorage(storage) {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return {
-      day: saved?.day || 1,
-      done: saved?.done || {},
-      wrong: saved?.wrong || {},
-      checks: saved?.checks || {},
-      log: saved?.log || [],
-      mockBest: saved?.mockBest || null,
-    };
+    return normalizeState(JSON.parse(storage.getItem(STORAGE_KEY)));
   } catch {
-    return { day: 1, done: {}, wrong: {}, checks: {}, log: [], mockBest: null };
+    return emptyState();
   }
 }
 
+function loadState() {
+  return readStateFromStorage(localStorage);
+}
+
 function saveState() {
+  state.version = STATE_VERSION;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function createExportPayload(targetState = state) {
+  return {
+    app: BACKUP_APP_ID,
+    version: STATE_VERSION,
+    exportedAt: new Date().toISOString(),
+    state: normalizeState(targetState),
+  };
+}
+
+function masteryTransition(previous, correct, now = Date.now()) {
+  const current = isRecord(previous) ? previous : {};
+  const previousStage = Math.min(Math.max(Math.trunc(Number(current.stage) || 0), 0), 5);
+  const stage = correct ? Math.min(previousStage + 1, 5) : Math.max(previousStage - 1, 0);
+  return {
+    stage,
+    streak: correct ? Math.max(Math.trunc(Number(current.streak) || 0), 0) + 1 : 0,
+    attempts: Math.max(Math.trunc(Number(current.attempts) || 0), 0) + 1,
+    correct: Math.max(Math.trunc(Number(current.correct) || 0), 0) + (correct ? 1 : 0),
+    lastSeen: now,
+    nextReview: now + (correct ? REVIEW_INTERVALS_MS[stage] : REVIEW_INTERVALS_MS[0]),
+  };
+}
+
+function isMasteryDue(record, now = Date.now()) {
+  return Boolean(record) && (!record.nextReview || record.nextReview <= now);
+}
+
+function dueReviewItems(now = Date.now()) {
+  return [...PRACTICE, ...THEORY_PRACTICE].filter((item) =>
+    isMasteryDue(state.mastery[item.id], now),
+  );
+}
+
+function restoreMockSession(draft) {
+  const safeDraft = normalizeMockDraft(draft);
+  if (!safeDraft) return null;
+  const knownItems = practiceItemMap();
+  const items = safeDraft.itemIds.map((id) => knownItems.get(id)).filter(Boolean);
+  return items.length === safeDraft.itemIds.length ? { ...safeDraft, items } : null;
 }
 
 function normalize(value) {
@@ -626,13 +858,20 @@ function pickWeighted(items) {
   items.forEach((item) => {
     const wrongWeight = state.wrong[item.id] ? 4 : 1;
     const mustWeight = item.level === "must" ? 2 : 1;
-    const count = wrongWeight * mustWeight;
+    const mastery = state.mastery[item.id];
+    const reviewWeight = isMasteryDue(mastery)
+      ? 3 + Math.max(0, 3 - (mastery?.stage || 0))
+      : 1;
+    const count = wrongWeight * mustWeight * reviewWeight;
     for (let index = 0; index < count; index += 1) weighted.push(item);
   });
   return weighted[Math.floor(Math.random() * weighted.length)] || items[0];
 }
 
 function poolByMode(mode) {
+  if (mode === "review") {
+    return dueReviewItems();
+  }
   if (mode === "wrong") {
     const wrongItems = [...PRACTICE, ...THEORY_PRACTICE].filter((item) => state.wrong[item.id]);
     return wrongItems.length ? wrongItems : PRACTICE.filter((item) => item.level === "must");
@@ -721,9 +960,152 @@ function setView(viewId) {
   if (viewId === "survival") renderRoutine();
 }
 
+function formatMockDate(timestamp) {
+  if (!timestamp) return "날짜 없음";
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function hydrateMockHistoryResults(entry) {
+  const knownItems = practiceItemMap();
+  return (entry?.results || [])
+    .map((result) => {
+      const item = knownItems.get(result.itemId);
+      return item ? { ...result, item } : null;
+    })
+    .filter(Boolean);
+}
+
+function analyzeMockDomains(results) {
+  const domains = {};
+  results.forEach((result) => {
+    const domain = result.item?.domain || "기타";
+    if (!domains[domain]) {
+      domains[domain] = { domain, total: 0, correct: 0, points: 0, maxPoints: 0 };
+    }
+    domains[domain].total += 1;
+    domains[domain].correct += result.correct ? 1 : 0;
+    domains[domain].points += Number(result.points) || 0;
+    domains[domain].maxPoints += Number(result.maxPoints) || 5;
+  });
+  return Object.values(domains)
+    .map((domain) => ({
+      ...domain,
+      strictRate: domain.total ? Math.round((domain.correct / domain.total) * 100) : 0,
+      learningRate: domain.maxPoints
+        ? Math.round((domain.points / domain.maxPoints) * 100)
+        : 0,
+    }))
+    .sort((left, right) => left.strictRate - right.strictRate || right.total - left.total);
+}
+
+function renderMockHistoryDetail(historyId) {
+  const root = document.getElementById("mockHistoryDetail");
+  const entryIndex = state.mockHistory.findIndex((entry) => entry.id === historyId);
+  if (entryIndex < 0) {
+    root.hidden = true;
+    root.replaceChildren();
+    return;
+  }
+  const entry = state.mockHistory[entryIndex];
+  const previous = state.mockHistory[entryIndex - 1];
+  const delta = previous ? entry.strictScore - previous.strictScore : null;
+  const results = hydrateMockHistoryResults(entry);
+  const domains = analyzeMockDomains(results);
+  root.hidden = false;
+  root.innerHTML = `
+    <div class="history-detail-head">
+      <div>
+        <h3>${escapeHtml(formatMockDate(entry.completedAt))} 상세 결과</h3>
+        <p>엄격 ${entry.strictScore}점 · 학습용 ${entry.learningScore}점${delta === null ? " · 첫 기록" : ` · 이전보다 ${delta > 0 ? "+" : ""}${delta}점`}${entry.timedOut ? " · 시간 종료" : ""}</p>
+      </div>
+      <button type="button" class="ghost-button" data-history-close>닫기</button>
+    </div>
+    ${
+      results.length
+        ? `
+          <div class="domain-analysis">
+            ${domains
+              .map(
+                (domain) => `
+                  <div class="domain-analysis-row">
+                    <div><strong>${escapeHtml(domain.domain)}</strong><span>${domain.correct}/${domain.total} 정답 · 학습 ${domain.learningRate}%</span></div>
+                    <div class="domain-score-track" aria-label="${escapeHtml(domain.domain)} 엄격 정답률 ${domain.strictRate}%"><span style="width: ${domain.strictRate}%"></span></div>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+          <div class="history-answer-list">
+            ${results
+              .map(
+                (result, index) => `
+                  <div class="result-row ${result.correct ? "ok" : ""}">
+                    <strong>${index + 1}. ${result.correct ? "정답" : result.points > 0 ? "부분 이해" : "오답"} - ${escapeHtml(result.item.domain)} (${result.points}/5점)</strong><br />
+                    내 답: ${escapeHtml(result.input || "(미응답)")}<br />
+                    정답: ${escapeHtml(result.item.answer)}<br />
+                    ${escapeHtml(result.item.explain)}
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+        `
+        : `<p class="empty-state">이 기록은 상세 저장 기능 추가 전 결과라 점수만 볼 수 있습니다.</p>`
+    }
+  `;
+}
+
+function renderMockHistory() {
+  const list = document.getElementById("mockHistoryList");
+  const trend = document.getElementById("mockTrend");
+  const history = state.mockHistory;
+  if (!history.length) {
+    trend.textContent = "기록 없음";
+    list.innerHTML = `<p class="empty-state">모의고사를 제출하면 점수 변화와 분야별 분석이 여기에 쌓입니다.</p>`;
+    document.getElementById("mockHistoryDetail").hidden = true;
+    return;
+  }
+
+  const latest = history[history.length - 1];
+  const previous = history[history.length - 2];
+  const latestDelta = previous ? latest.strictScore - previous.strictScore : null;
+  trend.textContent = latestDelta === null
+    ? `최근 ${latest.strictScore}점`
+    : `최근 ${latest.strictScore}점 · ${latestDelta >= 0 ? "+" : ""}${latestDelta}`;
+  list.innerHTML = [...history]
+    .reverse()
+    .slice(0, 6)
+    .map((entry, reverseIndex) => {
+      const originalIndex = history.length - 1 - reverseIndex;
+      const before = history[originalIndex - 1];
+      const delta = before ? entry.strictScore - before.strictScore : null;
+      return `
+        <button type="button" class="mock-history-row" data-history-id="${escapeHtml(entry.id)}">
+          <span>${escapeHtml(formatMockDate(entry.completedAt))}${entry.timedOut ? " · 시간 종료" : ""}</span>
+          <strong>엄격 ${entry.strictScore}점</strong>
+          <span>학습 ${entry.learningScore}점${delta === null ? " · 첫 기록" : ` · ${delta >= 0 ? "+" : ""}${delta}`}</span>
+        </button>
+      `;
+    })
+    .join("");
+
+  if (selectedMockHistoryId && history.some((entry) => entry.id === selectedMockHistoryId)) {
+    renderMockHistoryDetail(selectedMockHistoryId);
+  } else {
+    selectedMockHistoryId = null;
+    document.getElementById("mockHistoryDetail").hidden = true;
+  }
+}
+
 function updateStats() {
   const doneCount = Object.keys(state.done).length;
   const wrongCount = Object.keys(state.wrong).length;
+  const reviewDueCount = dueReviewItems().length;
   const recent = state.log.slice(-50);
   const accuracy = recent.length
     ? Math.round((recent.filter((entry) => entry.correct).length / recent.length) * 100)
@@ -731,11 +1113,13 @@ function updateStats() {
 
   document.getElementById("doneCount").textContent = doneCount;
   document.getElementById("wrongCount").textContent = wrongCount;
+  document.getElementById("reviewDueCount").textContent = reviewDueCount;
   document.getElementById("accuracy").textContent = `${accuracy}%`;
   document.getElementById("mockBest").textContent = state.mockBest === null ? "-" : `${state.mockBest}점`;
   document.getElementById("todayMode").textContent = `Day ${state.day}: ${DAY_PLANS[state.day - 1].focus}`;
   document.getElementById("daySelect").value = String(state.day);
   renderWeakTags();
+  renderMockHistory();
 }
 
 function renderDayPlan() {
@@ -1165,7 +1549,10 @@ function renderQuestion() {
     currentQuestion = null;
     document.getElementById("questionDomain").textContent = "-";
     document.getElementById("questionLevel").textContent = "-";
-    document.getElementById("questionText").textContent = "이 범위에 연결된 문제가 아직 없습니다.";
+    document.getElementById("questionText").textContent =
+      currentMode === "review"
+        ? "지금 복습할 문항이 없습니다. 틀린 문항은 10분 뒤, 맞힌 문항은 숙달 단계에 따라 다시 나타납니다."
+        : "이 범위에 연결된 문제가 아직 없습니다.";
     document.getElementById("solveGuide").innerHTML = "";
     document.getElementById("answerRule").textContent = "";
     return;
@@ -1208,7 +1595,8 @@ function gradeCurrent() {
 
 function recordResult(item, correct) {
   state.log.push({ id: item.id, correct, time: Date.now() });
-  state.log = state.log.slice(-200);
+  state.log = state.log.slice(-1000);
+  state.mastery[item.id] = masteryTransition(state.mastery[item.id], correct);
   if (correct) {
     state.done[item.id] = true;
     delete state.wrong[item.id];
@@ -1283,6 +1671,7 @@ function renderRoutine() {
 }
 
 function startMock() {
+  if (mockSession && !confirm("진행 중인 시험을 버리고 새 시험을 시작할까요?")) return;
   const examPool = poolByMode("exam");
   const pool = examPool.length ? examPool : [...poolByMode("must"), ...poolByMode("all")];
   const picked = [];
@@ -1302,85 +1691,307 @@ function startMock() {
     draw(examPool.filter((item) => !["code", "sql", "db"].includes(item.type)), 9);
   }
   draw(pool, 20 - picked.length);
-  mockSession = { index: 0, items: picked, results: [] };
+  const startedAt = Date.now();
+  mockSession = {
+    version: 1,
+    id: `mock-${startedAt}`,
+    itemIds: picked.map((item) => item.id),
+    index: 0,
+    answers: {},
+    flags: {},
+    startedAt,
+    deadline: startedAt + MOCK_DURATION_MS,
+    items: picked,
+  };
+  lastMockResult = null;
+  persistMockSession();
+  renderMock();
+}
+
+function serializeMockSession(session) {
+  if (!session) return null;
+  return {
+    version: 1,
+    id: session.id,
+    itemIds: session.itemIds,
+    index: session.index,
+    answers: session.answers,
+    flags: session.flags,
+    startedAt: session.startedAt,
+    deadline: session.deadline,
+  };
+}
+
+function persistMockSession() {
+  state.mockDraft = normalizeMockDraft(serializeMockSession(mockSession));
+  saveState();
+}
+
+function stopMockTimer() {
+  if (mockTimerId !== null) clearInterval(mockTimerId);
+  mockTimerId = null;
+}
+
+function formatRemaining(milliseconds) {
+  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+  return [hours, minutes, rest].map((value) => String(value).padStart(2, "0")).join(":");
+}
+
+function updateMockTimer() {
+  if (!mockSession) return;
+  const remaining = mockSession.deadline - Date.now();
+  const timer = document.getElementById("mockTimer");
+  if (timer) {
+    timer.textContent = formatRemaining(remaining);
+    timer.classList.toggle("urgent", remaining <= 10 * 60 * 1000);
+  }
+  if (remaining <= 0) finishMock({ timedOut: true, skipConfirm: true });
+}
+
+function startMockTimer() {
+  stopMockTimer();
+  if (!mockSession) return;
+  updateMockTimer();
+  if (mockSession) mockTimerId = setInterval(updateMockTimer, 1000);
+}
+
+function mockProgress() {
+  const answered = mockSession.itemIds.filter((id) =>
+    String(mockSession.answers[id] || "").trim(),
+  ).length;
+  const flagged = mockSession.itemIds.filter((id) => mockSession.flags[id]).length;
+  return { answered, unanswered: mockSession.itemIds.length - answered, flagged };
+}
+
+function updateMockProgressUi() {
+  if (!mockSession) return;
+  const progress = mockProgress();
+  const answered = document.getElementById("mockAnswered");
+  const unanswered = document.getElementById("mockUnanswered");
+  const flagged = document.getElementById("mockFlagged");
+  if (answered) answered.textContent = String(progress.answered);
+  if (unanswered) unanswered.textContent = String(progress.unanswered);
+  if (flagged) flagged.textContent = String(progress.flagged);
+  document.querySelectorAll("[data-mock-index]").forEach((button) => {
+    const index = Number(button.dataset.mockIndex);
+    const id = mockSession.itemIds[index];
+    button.classList.toggle("answered", Boolean(String(mockSession.answers[id] || "").trim()));
+    button.classList.toggle("flagged", Boolean(mockSession.flags[id]));
+  });
+}
+
+function setMockIndex(index) {
+  if (!mockSession) return;
+  mockSession.index = Math.min(Math.max(index, 0), mockSession.items.length - 1);
+  persistMockSession();
   renderMock();
 }
 
 function renderMock() {
   const root = document.getElementById("mockArea");
   if (!mockSession) {
+    stopMockTimer();
+    if (lastMockResult) {
+      renderMockResult(lastMockResult);
+      return;
+    }
     root.innerHTML = `<p class="empty-state">새 시험을 누르면 기출급 문제은행에서 코드 7문항, SQL/DB 4문항, 이론 9문항을 섞어 낸다.</p>`;
     return;
   }
-  if (mockSession.index >= mockSession.items.length) {
-    finishMock();
+  if (mockSession.deadline <= Date.now()) {
+    finishMock({ timedOut: true, skipConfirm: true });
     return;
   }
   const item = mockSession.items[mockSession.index];
+  const progress = mockProgress();
   root.innerHTML = `
-    <div class="mock-question">
-      <span class="mock-progress">${mockSession.index + 1} / ${mockSession.items.length}</span>
-      <span class="pill">${item.domain}</span>
-      <pre class="question-text">${item.question}</pre>
-      <label class="answer-box">
-        <span>답</span>
-        <input id="mockAnswer" autocomplete="off" />
-      </label>
-      <p class="answer-rule">${escapeHtml(answerRule(item))}</p>
-      <div class="button-row">
-        <button id="mockSubmit" type="button" class="primary-button">제출</button>
-        <button id="mockSkip" type="button" class="ghost-button">모름</button>
+    <div class="mock-exam-shell">
+      <div class="mock-status" role="status">
+        <div><span>남은 시간</span><strong id="mockTimer">${formatRemaining(mockSession.deadline - Date.now())}</strong></div>
+        <div><span>응답</span><strong><span id="mockAnswered">${progress.answered}</span> / ${mockSession.items.length}</strong></div>
+        <div><span>미응답</span><strong id="mockUnanswered">${progress.unanswered}</strong></div>
+        <div><span>재검토</span><strong id="mockFlagged">${progress.flagged}</strong></div>
+      </div>
+      <div class="mock-palette" aria-label="문항 바로가기">
+        ${mockSession.items
+          .map((candidate, index) => {
+            const answered = Boolean(String(mockSession.answers[candidate.id] || "").trim());
+            const flagged = Boolean(mockSession.flags[candidate.id]);
+            const classes = [
+              "mock-index",
+              index === mockSession.index ? "current" : "",
+              answered ? "answered" : "",
+              flagged ? "flagged" : "",
+            ].filter(Boolean).join(" ");
+            return `<button type="button" class="${classes}" data-mock-index="${index}" aria-label="${index + 1}번${answered ? ", 응답함" : ", 미응답"}${flagged ? ", 재검토" : ""}" ${index === mockSession.index ? 'aria-current="true"' : ""}>${index + 1}</button>`;
+          })
+          .join("")}
+      </div>
+      <div class="mock-question">
+        <div class="question-head">
+          <span class="mock-progress">${mockSession.index + 1} / ${mockSession.items.length}</span>
+          <span class="pill">${escapeHtml(item.domain)}</span>
+        </div>
+        <pre class="question-text">${escapeHtml(item.question)}</pre>
+        <label class="answer-box">
+          <span>답</span>
+          <textarea id="mockAnswer" rows="3" autocomplete="off">${escapeHtml(mockSession.answers[item.id] || "")}</textarea>
+        </label>
+        <p class="answer-rule">${escapeHtml(answerRule(item))}</p>
+        <label class="mock-flag"><input id="mockFlag" type="checkbox" ${mockSession.flags[item.id] ? "checked" : ""} /><span>나중에 다시 보기</span></label>
+        <div class="button-row mock-navigation">
+          <button id="mockPrevious" type="button" class="ghost-button" ${mockSession.index === 0 ? "disabled" : ""}>이전</button>
+          <button id="mockNext" type="button" class="ghost-button" ${mockSession.index === mockSession.items.length - 1 ? "disabled" : ""}>다음</button>
+          <button id="mockFinish" type="button" class="primary-button">최종 제출</button>
+        </div>
       </div>
     </div>
   `;
-  document.getElementById("mockAnswer").focus();
-  document.getElementById("mockSubmit").addEventListener("click", submitMock);
-  document.getElementById("mockSkip").addEventListener("click", () => submitMock(true));
-  document.getElementById("mockAnswer").addEventListener("keydown", (event) => {
-    if (event.key === "Enter") submitMock();
+  const answerInput = document.getElementById("mockAnswer");
+  answerInput.focus();
+  answerInput.addEventListener("input", (event) => {
+    const value = event.target.value;
+    if (value) mockSession.answers[item.id] = value;
+    else delete mockSession.answers[item.id];
+    persistMockSession();
+    updateMockProgressUi();
   });
-}
-
-function submitMock(skip = false) {
-  const item = mockSession.items[mockSession.index];
-  const input = skip ? "" : document.getElementById("mockAnswer").value;
-  const correct = !skip && matchesAnswer(input, item);
-  mockSession.results.push({ item, input, correct });
-  recordResult(item, correct);
-  mockSession.index += 1;
-  renderMock();
-  updateStats();
-}
-
-function finishMock() {
-  const root = document.getElementById("mockArea");
-  const score = Math.round(
-    (mockSession.results.filter((result) => result.correct).length / mockSession.results.length) * 100,
+  document.getElementById("mockFlag").addEventListener("change", (event) => {
+    if (event.target.checked) mockSession.flags[item.id] = true;
+    else delete mockSession.flags[item.id];
+    persistMockSession();
+    updateMockProgressUi();
+  });
+  document.querySelectorAll("[data-mock-index]").forEach((button) => {
+    button.addEventListener("click", () => setMockIndex(Number(button.dataset.mockIndex)));
+  });
+  document.getElementById("mockPrevious").addEventListener("click", () =>
+    setMockIndex(mockSession.index - 1),
   );
-  state.mockBest = state.mockBest === null ? score : Math.max(state.mockBest, score);
+  document.getElementById("mockNext").addEventListener("click", () =>
+    setMockIndex(mockSession.index + 1),
+  );
+  document.getElementById("mockFinish").addEventListener("click", () => finishMock());
+  startMockTimer();
+}
+
+function finishMock({ timedOut = false, skipConfirm = false } = {}) {
+  if (!mockSession) return;
+  const progress = mockProgress();
+  if (
+    !skipConfirm &&
+    !confirm(
+      `최종 제출할까요? 미응답 ${progress.unanswered}개, 재검토 ${progress.flagged}개입니다. 제출 뒤에는 답을 바꿀 수 없습니다.`,
+    )
+  ) {
+    return;
+  }
+
+  stopMockTimer();
+  const session = mockSession;
+  const results = session.items.map((item) => {
+    const input = session.answers[item.id] || "";
+    const scored = window.ANSWER_ENGINE.score(input, item, 5);
+    return { item, input, ...scored };
+  });
+  results.forEach((result) => recordResult(result.item, result.correct));
+  const maximum = results.length * 5;
+  const strictScore = maximum
+    ? Math.round((results.filter((result) => result.correct).length * 5 * 100) / maximum)
+    : 0;
+  const learningScore = maximum
+    ? Math.round((results.reduce((sum, result) => sum + result.points, 0) * 1000) / maximum) / 10
+    : 0;
+  const completed = {
+    id: session.id,
+    completedAt: Date.now(),
+    strictScore,
+    learningScore,
+    timedOut,
+    results,
+  };
+  state.mockBest = state.mockBest === null ? strictScore : Math.max(state.mockBest, strictScore);
+  state.mockHistory.push({
+    id: completed.id,
+    completedAt: completed.completedAt,
+    strictScore,
+    learningScore,
+    timedOut,
+    results: results.map((result) => ({
+      itemId: result.item.id,
+      input: result.input,
+      correct: result.correct,
+      points: result.points,
+      maxPoints: 5,
+    })),
+  });
+  state.mockHistory = state.mockHistory.slice(-20);
+  state.mockDraft = null;
+  mockSession = null;
+  lastMockResult = completed;
   saveState();
   updateStats();
+  renderMockResult(completed);
+}
+
+function renderMockResult(result) {
+  const root = document.getElementById("mockArea");
   root.innerHTML = `
     <div class="mock-result">
-      <article class="panic-item">
-        <strong>점수: ${score}점</strong>
-        <span>${score >= 70 ? "앱 문제은행 기준 안정권. 처음 보는 문제로 다시 확인한다." : score >= 60 ? "앱 기준 60점대. 실제 합격 예측값으로 보지 말고 코드/SQL 오답을 줄인다." : "학습 보강 필요. 최빈출 훈련부터 다시 돈다."}</span>
-      </article>
-      ${mockSession.results
-        .map(
-          (result, index) => `
-            <div class="result-row ${result.correct ? "ok" : ""}">
-              <strong>${index + 1}. ${result.correct ? "정답" : "오답"} - ${result.item.domain}</strong><br />
-              내 답: ${escapeHtml(result.input || "(미응답)")}<br />
-              정답: ${escapeHtml(result.item.answer)}<br />
-              ${escapeHtml(result.item.explain)}
-            </div>
-          `,
-        )
+      <div class="mock-score-summary">
+        <div><span>엄격 채점</span><strong>${result.strictScore}점</strong></div>
+        <div><span>학습용 부분점수</span><strong>${result.learningScore}점</strong></div>
+        <p>${result.timedOut ? "제한 시간이 끝나 자동 제출됐다. " : ""}${result.strictScore >= 60 ? "앱 문제은행에서는 60점 이상이다." : "엄격 채점 60점 미만이다. 오답과 오늘 복습부터 다시 푼다."} 실제 시험 합격 예측값은 아니다.</p>
+      </div>
+      ${result.results
+        .map((entry, index) => `
+          <div class="result-row ${entry.correct ? "ok" : ""}">
+            <strong>${index + 1}. ${entry.correct ? "정답" : entry.points > 0 ? "부분 이해" : "오답"} - ${escapeHtml(entry.item.domain)} (${entry.points}/5점)</strong><br />
+            내 답: ${escapeHtml(entry.input || "(미응답)")}<br />
+            정답: ${escapeHtml(entry.item.answer)}<br />
+            ${escapeHtml(entry.item.explain)}
+          </div>
+        `)
         .join("")}
     </div>
   `;
-  mockSession = null;
+}
+
+function exportProgress() {
+  const payload = createExportPayload();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `jeongcheogi-progress-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+async function importProgress(file) {
+  if (!file) return;
+  try {
+    const imported = normalizeImportedState(JSON.parse(await file.text()));
+    if (!confirm("현재 학습 기록을 파일의 기록으로 바꿀까요?")) return;
+    stopMockTimer();
+    state = imported;
+    mockSession = restoreMockSession(state.mockDraft);
+    lastMockResult = null;
+    selectedMockHistoryId = null;
+    saveState();
+    renderDayPlan();
+    renderQuestion();
+    renderMock();
+    updateStats();
+    alert("학습 기록을 가져왔습니다.");
+  } catch (error) {
+    alert(error instanceof Error ? error.message : "학습 기록 파일을 읽지 못했습니다.");
+  }
 }
 
 function bindEvents() {
@@ -1410,6 +2021,18 @@ function bindEvents() {
     if (!id) return;
     state.checks[id] = event.target.checked;
     saveState();
+  });
+
+  document.getElementById("mockHistoryList").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-history-id]");
+    if (!button) return;
+    selectedMockHistoryId = button.dataset.historyId;
+    renderMockHistoryDetail(selectedMockHistoryId);
+  });
+  document.getElementById("mockHistoryDetail").addEventListener("click", (event) => {
+    if (!event.target.closest("[data-history-close]")) return;
+    selectedMockHistoryId = null;
+    event.currentTarget.hidden = true;
   });
 
   document.getElementById("scopeSearch").addEventListener("input", renderScope);
@@ -1468,6 +2091,16 @@ function bindEvents() {
   document.getElementById("showAnswer").addEventListener("click", showCurrentAnswer);
   document.getElementById("markKnown").addEventListener("click", () => {
     if (!currentQuestion) return;
+    const now = Date.now();
+    const previous = state.mastery[currentQuestion.id] || {};
+    state.mastery[currentQuestion.id] = {
+      stage: Math.max(previous.stage || 0, 3),
+      streak: Math.max(previous.streak || 0, 1),
+      attempts: Math.max(previous.attempts || 0, 1),
+      correct: Math.max(previous.correct || 0, 1),
+      lastSeen: now,
+      nextReview: now + REVIEW_INTERVALS_MS[3],
+    };
     state.done[currentQuestion.id] = true;
     delete state.wrong[currentQuestion.id];
     saveState();
@@ -1485,12 +2118,26 @@ function bindEvents() {
     updateStats();
   });
 
+  document.getElementById("exportProgress").addEventListener("click", exportProgress);
+  document.getElementById("importProgressButton").addEventListener("click", () => {
+    document.getElementById("importProgress").click();
+  });
+  document.getElementById("importProgress").addEventListener("change", async (event) => {
+    await importProgress(event.target.files?.[0]);
+    event.target.value = "";
+  });
+
   document.getElementById("resetProgress").addEventListener("click", () => {
     if (!confirm("학습 기록을 전부 초기화할까요?")) return;
-    state = { day: 1, done: {}, wrong: {}, checks: {}, log: [], mockBest: null };
+    stopMockTimer();
+    state = emptyState();
+    mockSession = null;
+    lastMockResult = null;
+    selectedMockHistoryId = null;
     saveState();
     renderDayPlan();
     renderQuestion();
+    renderMock();
     updateStats();
   });
 
@@ -1541,13 +2188,25 @@ function boot() {
   renderDayPlan();
   renderQuestion();
   updateStats();
+  if (mockSession) startMockTimer();
 }
 
 window.JEONGCHEOGI_AUDIT = Object.freeze({
+  analyzeMockDomains,
   practice: PRACTICE,
   scope: SCOPE_ITEMS,
   theoryPractice: THEORY_PRACTICE,
   matchesAnswer,
+  createExportPayload,
+  dueReviewItems,
+  emptyState,
+  isMasteryDue,
+  masteryTransition,
+  normalizeImportedState,
+  normalizeMockDraft,
+  normalizeState,
+  readStateFromStorage,
+  stateSnapshot: () => createExportPayload().state,
 });
 
 if (typeof document !== "undefined") boot();

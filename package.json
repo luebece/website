@@ -2,6 +2,10 @@
   "name": "jeongcheogi-trainer",
   "private": true,
   "scripts": {
-    "test": "node tests/quality-audit.cjs"
+    "test": "node tests/quality-audit.cjs",
+    "test:e2e": "node tests/browser-e2e.cjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
   }
 }

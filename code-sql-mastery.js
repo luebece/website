@@ -74,7 +74,7 @@
     ["cs-py-018", "MID", "Python", "람다", "lambda는 이름 없는 짧은 함수를 만드는 문법이다.", "한 줄짜리 임시 함수.", "lambda x: x+1", ["언어/자료구조", "Python", "lambda"], ["lambda"]],
 
     ["cs-sql-001", "MAX", "SQL", "SELECT 기본", "SELECT는 테이블에서 원하는 컬럼과 행을 조회하는 DML 명령이다.", "조회는 SELECT.", "SELECT name FROM student;", ["SQL", "SELECT"], []],
-    ["cs-sql-002", "MAX", "SQL", "SQL 실행 순서", "FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY 순서로 생각한다.", "표 만들고, 행 거르고, 묶고, 그룹 거르고, 보여 주고, 정렬.", "HAVING은 GROUP BY 뒤에 적용된다.", ["SQL", "실행순서"], []],
+    ["cs-sql-002", "MAX", "SQL", "SQL 실행 순서", "FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY 순서로 생각한다.", "표 만들고, 행 거르고, 묶고, 그룹 거르고, 보여 주고, 정렬.", "HAVING은 GROUP BY 뒤에 적용된다.", ["SQL", "실행순서"], ["SELECT 실행 순서"]],
     ["cs-sql-003", "MAX", "SQL", "WHERE", "WHERE는 그룹이 되기 전 개별 행에 조건을 거는 절이다.", "행 조건은 WHERE.", "WHERE score >= 60", ["SQL", "WHERE"], []],
     ["cs-sql-004", "MAX", "SQL", "GROUP BY", "GROUP BY는 같은 값을 가진 행들을 그룹으로 묶는 절이다.", "부서별, 학과별이면 GROUP BY.", "GROUP BY dept", ["SQL", "GROUP BY"], []],
     ["cs-sql-005", "MAX", "SQL", "HAVING", "HAVING은 GROUP BY로 묶인 그룹에 조건을 거는 절이다.", "그룹 조건은 HAVING.", "HAVING COUNT(*) >= 2", ["SQL", "HAVING"], []],
