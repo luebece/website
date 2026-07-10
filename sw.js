@@ -1,22 +1,22 @@
-const CACHE_NAME = "jeongcheogi-trainer-v11";
+const CACHE_NAME = "jeongcheogi-trainer-v12";
 
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./theory-deep.js",
-  "./theory-mega.js",
-  "./code-sql-mastery.js",
-  "./code-sql-conquest.js",
-  "./code-sql-grandmaster.js",
-  "./code-java-generics.js",
-  "./exam-master-theory.js",
-  "./exam-master-code-c.js",
-  "./exam-master-code-jps.js",
-  "./exam-master-academy.js",
-  "./exam-coverage.js",
-  "./app.js",
-  "./pwa.js",
+  "./styles.css?v=12",
+  "./theory-deep.js?v=12",
+  "./theory-mega.js?v=12",
+  "./code-sql-mastery.js?v=12",
+  "./code-sql-conquest.js?v=12",
+  "./code-sql-grandmaster.js?v=12",
+  "./code-java-generics.js?v=12",
+  "./exam-master-theory.js?v=12",
+  "./exam-master-code-c.js?v=12",
+  "./exam-master-code-jps.js?v=12",
+  "./exam-master-academy.js?v=12",
+  "./exam-coverage.js?v=12",
+  "./app.js?v=12",
+  "./pwa.js?v=12",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/icon-192.png",
@@ -53,6 +53,19 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() => caches.match(new URL("./index.html", self.location).href)),
+    );
+    return;
+  }
+
+  if (request.destination === "script" || request.destination === "style") {
+    event.respondWith(
+      fetch(request, { cache: "no-cache" })
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() => caches.match(request)),
     );
     return;
   }
