@@ -147,7 +147,7 @@
 
     ["x-py-001", "Python", "code", "must", "Python 출력값은?\na = [0, 1, 2, 3, 4]\nprint(a[1:4])", ["[1,2,3]", "[1, 2, 3]"], "[1, 2, 3]", "슬라이싱 끝 인덱스 4는 포함하지 않는다.", ["Python", "슬라이싱"]],
     ["x-py-002", "Python", "code", "must", "Python 출력값은?\ns = 'ABCDE'\nprint(s[::-2])", ["ECA", "eca"], "ECA", "뒤에서부터 2칸씩 E, C, A를 고른다.", ["Python", "슬라이싱"]],
-    ["x-py-003", "Python", "code", "must", "Python 출력값은?\na = [1, 2, 3]\nb = a\nb.append(4)\nprint(len(a))", ["4"], "4", "b와 a는 같은 리스트를 보므로 a 길이도 4가 된다.", ["Python", "리스트", "참조"]],
+    ["x-py-003", "Python", "code", "must", "Python 출력값은?\na = [10, 20]\nb = a\nb.append(30)\nprint(len(a))", ["3"], "3", "b와 a는 같은 리스트를 보므로 b에 하나를 추가하면 a의 길이도 3이 된다.", ["Python", "리스트", "참조"]],
     ["x-py-004", "Python", "code", "high", "Python 출력값은?\na = [1]\na.append([2, 3])\nprint(a)", ["[1,[2,3]]", "[1, [2, 3]]"], "[1, [2, 3]]", "append는 리스트 [2,3]을 원소 하나로 넣는다.", ["Python", "append"]],
     ["x-py-005", "Python", "code", "high", "Python 출력값은?\na = [1]\na.extend([2, 3])\nprint(a)", ["[1,2,3]", "[1, 2, 3]"], "[1, 2, 3]", "extend는 [2,3]의 원소를 풀어서 붙인다.", ["Python", "extend"]],
     ["x-py-006", "Python", "code", "high", "Python 출력값은?\nprint(list(range(1, 6, 2)))", ["[1,3,5]", "[1, 3, 5]"], "[1, 3, 5]", "1부터 6 직전까지 2씩 증가한다.", ["Python", "range"]],

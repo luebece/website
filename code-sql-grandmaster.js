@@ -577,7 +577,7 @@
     ["gm-c-019", "C", "code", "high", `C 출력값은?\nvoid f(int *a, int *b) {\n  int t = *a;\n  *a = *b;\n  *b = t;\n}\nint x = 1, y = 4;\nf(&x, &y);\nprintf("%d%d", x, y);`, ["41", "4 1", "4,1"], "41", "주소를 통해 x와 y 값이 서로 바뀐다.", ["C", "포인터", "swap"]],
     ["gm-c-020", "C", "code", "mid", `C 출력값은?\nchar *p = "HELLO";\np += 2;\nprintf("%c", *p);`, ["L", "l"], "L", "H(0), E(1), L(2)이므로 p+=2 뒤 *p는 L이다.", ["C", "문자열", "포인터"]],
 
-    ["gm-java-001", "Java", "code", "must", `Java 출력값은?\nclass A { A(){ System.out.print("A"); } }\nclass B extends A { B(){ System.out.print("B"); } }\nnew B();`, ["AB", "ab"], "AB", "자식 객체 생성 시 부모 생성자 A가 먼저, 자식 생성자 B가 나중에 실행된다.", ["Java", "생성자", "상속"]],
+    ["gm-java-001", "Java", "code", "must", `Java 출력값은?\nclass Parent { Parent(){ System.out.print("P"); } }\nclass Child extends Parent { Child(){ System.out.print("C"); } }\nnew Child();`, ["PC", "pc"], "PC", "자식 객체 생성 시 부모 생성자의 P가 먼저, 자식 생성자의 C가 나중에 출력된다.", ["Java", "생성자", "상속"]],
     ["gm-java-002", "Java", "code", "must", `Java 출력값은?\nclass A { String f(){ return "A"; } }\nclass B extends A { String f(){ return "B"; } }\nA x = new B();\nSystem.out.print(x.f());`, ["B", "b"], "B", "오버라이딩 메서드는 실제 객체 B 기준으로 실행된다.", ["Java", "오버라이딩"]],
     ["gm-java-003", "Java", "code", "high", `Java 출력값은?\nclass T {\n  void f(int x){ System.out.print("I"); }\n  void f(String x){ System.out.print("S"); }\n}\nT t = new T();\nt.f(3);`, ["I", "i"], "I", "3은 int이므로 f(int)가 선택된다. 이것은 오버로딩이다.", ["Java", "오버로딩"]],
     ["gm-java-004", "Java", "code", "must", `Java 출력값은?\nclass T {\n  static int c = 0;\n  int n = 0;\n  T(){ c++; n++; }\n}\nT a = new T();\nT b = new T();\nSystem.out.print(T.c + " " + a.n + " " + b.n);`, ["211", "2 1 1", "2,1,1"], "2 1 1", "static c는 공유되어 2, n은 객체마다 따로라 둘 다 1이다.", ["Java", "static"]],
@@ -598,7 +598,7 @@
     ["gm-java-019", "Java", "code", "high", `Java 출력값은?\nint x = 5;\nSystem.out.print(x++ + "," + x);`, ["5,6", "56", "5 6"], "5,6", "x++는 먼저 5를 출력식에 쓰고 이후 x가 6이 된다.", ["Java", "증감연산"]],
     ["gm-java-020", "Java", "code", "mid", "Java에서 더 이상 값을 바꾸지 못하게 변수나 메서드, 클래스에 붙이는 키워드는?", ["final"], "final", "final 변수는 재할당할 수 없다.", ["Java", "final"]],
 
-    ["gm-py-001", "Python", "code", "must", `Python 출력값은?\ns = 'ABCDE'\nprint(s[-2])`, ["D", "d"], "D", "-1은 E, -2는 D다.", ["Python", "인덱싱"]],
+    ["gm-py-001", "Python", "code", "must", `Python 출력값은?\ns = 'TRAIN'\nprint(s[-2])`, ["I", "i"], "I", "-1은 N, -2는 I다.", ["Python", "인덱싱"]],
     ["gm-py-002", "Python", "code", "must", `Python 출력값은?\na = [0, 1, 2, 3, 4, 5]\nprint(a[1:5:2])`, ["[1,3]", "[1, 3]"], "[1, 3]", "1번부터 5번 직전까지 2칸씩 가므로 1, 3이다.", ["Python", "슬라이싱"]],
     ["gm-py-003", "Python", "code", "must", `Python 출력값은?\ns = 'ABC'\nprint(s[::-1])`, ["CBA", "cba"], "CBA", "step -1은 역순이다.", ["Python", "슬라이싱"]],
     ["gm-py-004", "Python", "code", "must", `Python 출력값은?\na = [1, 2]\nb = a.copy()\nb.append(3)\nprint(len(a), len(b))`, ["23", "2 3", "2,3"], "2 3", "copy로 겉 리스트를 새로 만들었으므로 a 길이는 2, b 길이는 3이다.", ["Python", "copy"]],
@@ -638,7 +638,7 @@
     ["gm-sql-017", "SQL", "sql", "high", "조건에 따라 PASS/FAIL 같은 값을 만들 때 쓰는 SQL 조건식 키워드는?", ["case", "casewhen", "case when"], "CASE", "CASE WHEN 조건 THEN 값 ELSE 값 END 형태로 쓴다.", ["SQL", "CASE"]],
     ["gm-sql-018", "SQL", "sql", "high", "평균보다 큰 급여를 찾는 조건에서 평균을 계산하는 집계 함수는?", ["avg"], "AVG", "WHERE salary > (SELECT AVG(salary) FROM emp)처럼 쓴다.", ["SQL", "서브쿼리"]],
     ["gm-sql-019", "SQL", "sql", "must", "트랜잭션에서 아직 확정하지 않은 변경을 취소하는 명령은?", ["rollback"], "ROLLBACK", "ROLLBACK은 트랜잭션 변경을 취소한다. COMMIT은 확정이다.", ["SQL", "TCL"]],
-    ["gm-sql-020", "SQL", "sql", "must", "GRANT와 REVOKE가 속한 SQL 언어 분류는?", ["dcl"], "DCL", "권한 부여와 회수는 DCL이다.", ["SQL", "DCL"]],
+    ["gm-sql-020", "SQL", "sql", "must", "사용자 kim에게 SELECT 권한을 부여하는 문장의 첫 예약어는?", ["grant"], "GRANT", "GRANT는 사용자에게 권한을 부여하고 REVOKE는 권한을 회수한다.", ["SQL", "DCL"]],
   ];
 
   window.CODE_SQL_PRACTICE_ROWS = [...(window.CODE_SQL_PRACTICE_ROWS || []), ...rows];

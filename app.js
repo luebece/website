@@ -4,7 +4,11 @@ const SOURCES = [
     url: "https://www.q-net.or.kr/crf005.do?id=crf00503&jmCd=1320",
   },
   {
-    label: "Q-Net 정보처리기사 출제기준(2023.1.1~2025.12.31)",
+    label: "Q-Net 정보처리기사 공식 출제기준(2026.1.1~2026.12.31)",
+    url: "https://www.q-net.or.kr/crf005.do?gId=&gSite=Q&id=crf00503s02&jmCd=1320&jmInfoDivCcd=B0",
+  },
+  {
+    label: "Q-Net 이전 출제기준(2023.1.1~2025.12.31)",
     url: "https://www.q-net.or.kr/cst006.do?id=cst00602&brdId=Q006&code=1202&artlSeq=5210765",
   },
   {
@@ -103,10 +107,10 @@ const DAY_PLANS = [
     ],
   },
   {
-    title: "실전처럼 치고 오답만 태운다",
-    focus: "20문항 모의고사 3회, 오답 태그 제거, 답안 속도",
+    title: "시간을 재고 풀어 오답만 남긴다",
+    focus: "20문항 실전형 연습 3회, 오답 태그 제거, 답안 속도",
     tasks: [
-      ["20문항 모의고사 3회", "목표는 70점 이상. 60점이면 아직 위험권이다."],
+      ["20문항 실전형 연습 3회", "앱 문제은행 기준 70점 이상을 만들되 실제 시험 예상 점수로 보지는 않는다."],
       ["오답 태그 TOP 5만 재암기", "새 범위 욕심내지 말고 틀린 것을 없앤다."],
       ["영문 약자 철자 최종 점검", "대소문자보다 철자 자체가 중요하다."],
       ["시험 직전 60분 루틴 실행", "코드, SQL, 보안, 네트워크 단답 순서로 본다."],
@@ -117,6 +121,7 @@ const DAY_PLANS = [
 const SCOPE_ITEMS = [
   {
     id: "code",
+    officialNo: 10,
     title: "프로그래밍 언어 활용",
     heat: "MAX",
     summary: "매 회차에 가까운 빈도로 코드 출력이 나온다. C, Java, Python을 변수표로 추적해야 한다.",
@@ -125,6 +130,7 @@ const SCOPE_ITEMS = [
   },
   {
     id: "sql",
+    officialNo: 8,
     title: "SQL 응용",
     heat: "MAX",
     summary: "예약어 빈칸, 결과 행 수, 제약조건, 조인, 집계가 반복된다.",
@@ -133,6 +139,7 @@ const SCOPE_ITEMS = [
   },
   {
     id: "db",
+    officialNo: 2,
     title: "데이터 입출력 구현",
     heat: "MAX",
     summary: "정규화, 키, 함수 종속, ERD, 카디널리티/차수는 단답으로 잘 나온다.",
@@ -141,6 +148,7 @@ const SCOPE_ITEMS = [
   },
   {
     id: "netos",
+    officialNo: 11,
     title: "응용 SW 기초 기술 활용",
     heat: "HIGH",
     summary: "네트워크 약어와 OS 계산형이 자주 섞인다. 서브넷, 라우팅, 페이지 교체가 핵심이다.",
@@ -149,6 +157,7 @@ const SCOPE_ITEMS = [
   },
   {
     id: "security",
+    officialNo: 9,
     title: "소프트웨어 개발 보안 구축",
     heat: "HIGH",
     summary: "암호 알고리즘, 인증/인가, 취약점 이름, 보안 관리체계가 단답으로 나온다.",
@@ -157,23 +166,26 @@ const SCOPE_ITEMS = [
   },
   {
     id: "test",
-    title: "애플리케이션 테스트 관리",
+    officialNo: 7,
+    title: "애플리케이션 테스트",
     heat: "HIGH",
     summary: "커버리지, 테스트 종류, 정적/동적 분석은 정의형으로 자주 묻는다.",
     terms: ["문장 커버리지", "분기 커버리지", "화이트박스", "블랙박스", "정적 분석", "동적 분석"],
     route: "Day 4에 표로 외운다.",
   },
   {
-    id: "design",
-    title: "SW 설계와 디자인 패턴",
+    id: "interface",
+    officialNo: 5,
+    title: "인터페이스 구현",
     heat: "HIGH",
-    summary: "응집도/결합도, UML, GoF 패턴이 개념 단답으로 반복된다.",
-    terms: ["Singleton", "Observer", "Bridge", "Iterator", "UML", "응집도", "결합도"],
-    route: "패턴은 이름과 의도를 한 줄로 묶어 외운다.",
+    summary: "인터페이스 설계, 데이터 형식, 기능 구현과 검증 및 오류 처리를 다룬다.",
+    terms: ["인터페이스 설계", "JSON", "XML", "REST", "오류 처리", "구현 검증"],
+    route: "연계 형식과 오류 처리 흐름을 통합 구현 영역과 함께 본다.",
   },
   {
     id: "req",
-    title: "요구사항 확인",
+    officialNo: 1,
+    title: "현행 시스템 분석 및 요구사항 확인",
     heat: "MID",
     summary: "기능/비기능 요구사항과 품질 속성 분류가 나온다.",
     terms: ["성능", "자원", "운영", "보안", "신뢰성", "유지보수성", "추적성"],
@@ -181,14 +193,16 @@ const SCOPE_ITEMS = [
   },
   {
     id: "integration",
-    title: "통합 구현과 인터페이스",
+    officialNo: 3,
+    title: "통합 구현",
     heat: "MID",
-    summary: "REST, JSON/XML, EAI/ESB, 인터페이스 보안이 실무형으로 출제된다.",
-    terms: ["REST", "JSON", "XML", "EAI", "ESB", "SOAP", "WSDL"],
-    route: "약어 뜻과 데이터 형식을 묶어서 외운다.",
+    summary: "연계 대상 모듈의 특성을 분석하고 연계 모듈과 데이터 변환 흐름을 구현한다.",
+    terms: ["연계 모듈", "EAI", "ESB", "SOAP", "WSDL", "데이터 변환"],
+    route: "연계 방식과 모듈 사이 데이터 흐름을 묶어서 외운다.",
   },
   {
     id: "server",
+    officialNo: 4,
     title: "서버 프로그램 구현",
     heat: "MID",
     summary: "모듈, 공통 컴포넌트, 프레임워크, 형상관리, 배포 흐름이 나온다.",
@@ -197,6 +211,7 @@ const SCOPE_ITEMS = [
   },
   {
     id: "ui",
+    officialNo: 6,
     title: "화면 설계",
     heat: "MID",
     summary: "UI 요구사항, 와이어프레임, 스토리보드, 프로토타입은 간헐적으로 나온다.",
@@ -205,6 +220,7 @@ const SCOPE_ITEMS = [
   },
   {
     id: "package",
+    officialNo: 12,
     title: "제품소프트웨어 패키징",
     heat: "MID",
     summary: "릴리즈 노트, DRM, 설치 매뉴얼, 형상관리, 버전 관리를 묻는다.",
@@ -444,7 +460,7 @@ const PRACTICE = [
 
   card("code-001", "코드", "code", "must", "C 코드 출력값은?\nint a[] = {2, 4, 6};\nint *p = a;\nprintf(\"%d\", *(p + 2) + *p);", ["8"], "8", "*(p+2)는 6, *p는 2다.", ["C", "포인터"]),
   card("code-002", "코드", "code", "must", "C에서 3 << 2의 값은?", ["12"], "12", "왼쪽 시프트는 2의 제곱을 곱한다. 3*4=12.", ["C", "비트연산"]),
-  card("code-003", "코드", "code", "must", "C 코드 출력값은?\nint x = 3;\nprintf(\"%d\", x++ + ++x);", ["8"], "8", "x++는 3을 쓰고 4가 된다. ++x는 5가 된 뒤 사용한다.", ["C", "증감연산"]),
+  card("code-003", "코드", "code", "must", "C 코드 출력값은?\nint x = 3;\nint a = x++;\nint b = ++x;\nprintf(\"%d\", a + b);", ["8"], "8", "a에는 증가 전 3이 들어가고 x는 4가 된다. 다음 줄의 ++x로 x와 b가 5가 되어 3+5=8이다.", ["C", "증감연산"]),
   card("code-004", "코드", "code", "high", "C에서 구조체 포인터 p가 멤버 num에 접근할 때 쓰는 연산자는?", ["->", "화살표"], "->", "일반 구조체 변수는 점(.), 포인터는 화살표(->).", ["C", "구조체"]),
   card("code-005", "코드", "code", "high", "C 코드 출력값은?\nchar s[] = \"ABCDE\";\nprintf(\"%c\", s[1] + 2);", ["D", "d"], "D", "s[1]은 B, 문자 코드로 2를 더하면 D.", ["C", "문자열"]),
   card("code-006", "코드", "code", "must", "Java에서 부모 타입 변수 A a = new B(); 일 때 오버라이딩 메서드 호출은 A와 B 중 어느 클래스 구현이 실행되는가?", ["b", "자식", "하위", "실제객체"], "B", "오버라이딩은 실제 객체 타입 기준으로 동적 바인딩된다.", ["Java", "오버라이딩"]),
@@ -512,8 +528,9 @@ let currentQuestion = null;
 let mockSession = null;
 let currentAcademyLang = "C";
 let currentCoverageSkill = null;
+let currentQuestionGraded = false;
 
-function card(id, domain, type, level, question, accept, answer, explain, tags) {
+function card(id, domain, type, level, question, accept, answer, explain, tags, options = {}) {
   const groupAccept = Array.isArray(accept[0]) ? accept : null;
   const flatAccept = groupAccept ? [] : accept;
   return {
@@ -527,6 +544,7 @@ function card(id, domain, type, level, question, accept, answer, explain, tags) 
     answer,
     explain,
     tags,
+    answerMode: options.answerMode,
   };
 }
 
@@ -590,20 +608,17 @@ function normalize(value) {
 }
 
 function matchesAnswer(user, item) {
-  const cleanUser = normalize(user);
-  if (!cleanUser) return false;
+  return window.ANSWER_ENGINE.matches(user, item);
+}
 
-  if (item.groups) {
-    return item.groups.every((group) =>
-      group.some((answer) => cleanUser.includes(normalize(answer))),
-    );
-  }
-
-  return item.accept.some((answer) => {
-    const cleanAnswer = normalize(answer);
-    if (!cleanAnswer) return false;
-    return cleanUser === cleanAnswer || cleanUser.includes(cleanAnswer);
-  });
+function answerRule(item) {
+  const rules = {
+    term: "용어형: 정답 전체 또는 등록된 동의어와 일치해야 한다.",
+    output: "출력형: 부호, 소수점, 기호와 출력 순서를 정확히 쓴다.",
+    ordered: "순서형: 모든 답을 문제에서 요구한 순서대로 쓴다.",
+    set: "복수답형: 필요한 항목을 모두 쓰며 항목 순서는 상관없다.",
+  };
+  return rules[window.ANSWER_ENGINE.answerMode(item)] || rules.term;
 }
 
 function pickWeighted(items) {
@@ -764,6 +779,7 @@ function renderScope() {
           <header>
             <div>
               <h3>${item.title}</h3>
+              <span class="pill muted">2026 공식 ${item.officialNo}영역</span>
               <span class="pill ${item.heat === "MAX" ? "warn" : ""}">${item.heat}</span>
             </div>
           </header>
@@ -1142,12 +1158,16 @@ function renderCoverage() {
 
 function renderQuestion() {
   const pool = poolByMode(currentMode);
+  currentQuestionGraded = false;
+  document.getElementById("checkAnswer").disabled = false;
+  delete document.getElementById("feedback").dataset.revealedFor;
   if (!pool.length) {
     currentQuestion = null;
     document.getElementById("questionDomain").textContent = "-";
     document.getElementById("questionLevel").textContent = "-";
     document.getElementById("questionText").textContent = "이 범위에 연결된 문제가 아직 없습니다.";
     document.getElementById("solveGuide").innerHTML = "";
+    document.getElementById("answerRule").textContent = "";
     return;
   }
   const next = pickWeighted(pool);
@@ -1156,6 +1176,7 @@ function renderQuestion() {
   document.getElementById("questionLevel").textContent =
     currentQuestion.level === "must" ? "최빈출" : currentQuestion.level.toUpperCase();
   document.getElementById("questionText").textContent = currentQuestion.question;
+  document.getElementById("answerRule").textContent = answerRule(currentQuestion);
   document.getElementById("solveGuide").innerHTML = renderSolveGuide(currentQuestion);
   const hintBox = document.getElementById("hintBox");
   hintBox.innerHTML = renderHint(currentQuestion);
@@ -1168,16 +1189,19 @@ function renderQuestion() {
 }
 
 function gradeCurrent() {
-  if (!currentQuestion) return;
+  if (!currentQuestion || currentQuestionGraded) return;
   const input = document.getElementById("answerInput").value;
-  const correct = matchesAnswer(input, currentQuestion);
+  const result = window.ANSWER_ENGINE.evaluate(input, currentQuestion);
+  const correct = result.correct;
+  currentQuestionGraded = true;
+  document.getElementById("checkAnswer").disabled = true;
   recordResult(currentQuestion, correct);
   const feedback = document.getElementById("feedback");
   feedback.className = `feedback ${correct ? "correct" : "wrong"}`;
   feedback.innerHTML = `
     <strong>${correct ? "정답" : "오답"}</strong><br />
-    정답: ${currentQuestion.answer}<br />
-    ${currentQuestion.explain}
+    정답: ${escapeHtml(currentQuestion.answer)}<br />
+    ${escapeHtml(currentQuestion.explain)}
   `;
   updateStats();
 }
@@ -1197,11 +1221,16 @@ function recordResult(item, correct) {
 function showCurrentAnswer() {
   if (!currentQuestion) return;
   const feedback = document.getElementById("feedback");
+  if (feedback.dataset.revealedFor === currentQuestion.id) return;
+  feedback.dataset.revealedFor = currentQuestion.id;
   feedback.className = "feedback wrong";
-  feedback.innerHTML = `<strong>정답 보기</strong><br />${currentQuestion.answer}<br />${currentQuestion.explain}`;
-  state.wrong[currentQuestion.id] = (state.wrong[currentQuestion.id] || 0) + 1;
-  saveState();
-  updateStats();
+  feedback.innerHTML = `<strong>정답 보기</strong><br />${escapeHtml(currentQuestion.answer)}<br />${escapeHtml(currentQuestion.explain)}`;
+  if (!currentQuestionGraded) {
+    currentQuestionGraded = true;
+    document.getElementById("checkAnswer").disabled = true;
+    recordResult(currentQuestion, false);
+    updateStats();
+  }
 }
 
 function showHint() {
@@ -1297,6 +1326,7 @@ function renderMock() {
         <span>답</span>
         <input id="mockAnswer" autocomplete="off" />
       </label>
+      <p class="answer-rule">${escapeHtml(answerRule(item))}</p>
       <div class="button-row">
         <button id="mockSubmit" type="button" class="primary-button">제출</button>
         <button id="mockSkip" type="button" class="ghost-button">모름</button>
@@ -1334,15 +1364,16 @@ function finishMock() {
     <div class="mock-result">
       <article class="panic-item">
         <strong>점수: ${score}점</strong>
-        <span>${score >= 70 ? "실전권. 오답만 정리하면 된다." : score >= 60 ? "합격선 근처. 코드/SQL 오답을 줄여야 한다." : "위험권. 최빈출 훈련부터 다시 돌자."}</span>
+        <span>${score >= 70 ? "앱 문제은행 기준 안정권. 처음 보는 문제로 다시 확인한다." : score >= 60 ? "앱 기준 60점대. 실제 합격 예측값으로 보지 말고 코드/SQL 오답을 줄인다." : "학습 보강 필요. 최빈출 훈련부터 다시 돈다."}</span>
       </article>
       ${mockSession.results
         .map(
           (result, index) => `
             <div class="result-row ${result.correct ? "ok" : ""}">
               <strong>${index + 1}. ${result.correct ? "정답" : "오답"} - ${result.item.domain}</strong><br />
-              정답: ${result.item.answer}<br />
-              ${result.item.explain}
+              내 답: ${escapeHtml(result.input || "(미응답)")}<br />
+              정답: ${escapeHtml(result.item.answer)}<br />
+              ${escapeHtml(result.item.explain)}
             </div>
           `,
         )
@@ -1512,4 +1543,11 @@ function boot() {
   updateStats();
 }
 
-boot();
+window.JEONGCHEOGI_AUDIT = Object.freeze({
+  practice: PRACTICE,
+  scope: SCOPE_ITEMS,
+  theoryPractice: THEORY_PRACTICE,
+  matchesAnswer,
+});
+
+if (typeof document !== "undefined") boot();

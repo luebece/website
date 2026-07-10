@@ -295,7 +295,7 @@
     ["cq-py-015", "Python", "code", "mid", "Python 출력값은?\nprint(bool([0]))", ["True", "true", "참"], "True", "원소가 있는 리스트는 True다.", ["Python", "bool"]],
 
     ["cq-sql-001", "SQL", "sql", "must", "SQL 처리 순서를 FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY 기준으로 쓰면?", [["from"], ["where"], ["groupby", "group by"], ["having"], ["select"], ["orderby", "order by"]], "FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY", "겉보기와 실제 처리 순서는 다르다.", ["SQL", "실행순서"]],
-    ["cq-sql-002", "SQL", "sql", "must", "COUNT(*)와 COUNT(score) 중 NULL score 행도 세는 것은?", ["count(*)", "count"], "COUNT(*)", "COUNT(컬럼)은 NULL을 세지 않는다.", ["SQL", "집계"]],
+    ["cq-sql-002", "SQL", "sql", "must", "COUNT(*)와 COUNT(score) 중 NULL score 행도 세는 것은?", ["count(*)"], "COUNT(*)", "COUNT(컬럼)은 NULL을 세지 않는다.", ["SQL", "집계"]],
     ["cq-sql-003", "SQL", "sql", "must", "SELECT 결과를 내림차순으로 정렬할 때 쓰는 키워드는?", ["desc"], "DESC", "ASC는 오름차순, DESC는 내림차순이다.", ["SQL", "ORDER BY"]],
     ["cq-sql-004", "SQL", "sql", "high", "조건에 따라 PASS/FAIL 같은 값을 출력할 때 쓰는 SQL 표현은?", ["case", "casewhen", "case when"], "CASE WHEN", "CASE WHEN 조건 THEN 값 ELSE 값 END 형태다.", ["SQL", "CASE"]],
     ["cq-sql-005", "SQL", "sql", "high", "테이블이나 컬럼에 임시 이름을 붙이는 SQL 키워드는?", ["as"], "AS", "SELECT name AS 이름 형태로 쓴다.", ["SQL", "별칭"]],

@@ -1,0 +1,7 @@
+{
+  "name": "jeongcheogi-trainer",
+  "private": true,
+  "scripts": {
+    "test": "node tests/quality-audit.cjs"
+  }
+}
