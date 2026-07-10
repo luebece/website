@@ -39,3 +39,24 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Test storage restore and mock history
         run: npm run test:e2e
+
+  release-package:
+    needs: [test, browser-e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install packaging dependency
+        run: npm ci
+      - name: Build user release ZIP
+        run: npm run build:release
+      - name: Upload user release ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: jeongcheogi-trainer
+          path: dist/jeongcheogi-trainer.zip

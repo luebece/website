@@ -540,6 +540,8 @@ let mockSession = null;
 let mockTimerId = null;
 let lastMockResult = null;
 let selectedMockHistoryId = null;
+let selectedMockMode = "standard";
+let storageWarningShown = false;
 let currentAcademyLang = "C";
 let currentCoverageSkill = null;
 let currentQuestionGraded = false;
@@ -559,6 +561,7 @@ function card(id, domain, type, level, question, accept, answer, explain, tags, 
     explain,
     tags: [...new Set((tags || []).map((tag) => String(tag).trim()).filter(Boolean))],
     answerMode: options.answerMode,
+    wholeAccept: options.wholeAccept || [],
   };
 }
 
@@ -579,24 +582,179 @@ const THEORY_EXCLUDED_TAGS = new Set([
   "구조체",
 ]);
 
+const THEORY_COMPOSITE_ANSWERS = {
+  "master-recovery": {
+    groups: [["REDO", "재실행"], ["UNDO", "취소"]],
+  },
+  "master-join-types": {
+    groups: [["세타 조인", "Theta Join"], ["동등 조인", "Equi Join"], ["자연 조인", "Natural Join"]],
+  },
+  "master-sql-group": {
+    groups: [["GROUP BY", "그룹화"], ["HAVING", "그룹 조건"]],
+  },
+  "master-schema-levels": {
+    groups: [["외부 스키마"], ["개념 스키마"], ["내부 스키마"]],
+    wholeAccept: ["3단계 스키마"],
+  },
+  "master-relation-basics": {
+    groups: [["튜플"], ["속성"], ["차수"], ["카디널리티"], ["도메인"]],
+    wholeAccept: ["릴레이션 구성"],
+  },
+  "master-integrity": {
+    groups: [["개체 무결성"], ["참조 무결성"], ["도메인 무결성"]],
+    wholeAccept: ["Integrity"],
+  },
+  "master-sql-write": {
+    groups: [["INSERT"], ["UPDATE"], ["DELETE"]],
+    wholeAccept: ["DML"],
+  },
+  "master-db-keys": {
+    groups: [["기본키"], ["외래키"], ["후보키"], ["대체키"], ["슈퍼키"]],
+    wholeAccept: ["DB Key"],
+  },
+  "master-foreign-key-ddl": {
+    groups: [["FOREIGN KEY"], ["REFERENCES"]],
+    wholeAccept: ["외래키 제약"],
+  },
+  "master-sql-null-count": {
+    groups: [["COUNT", "COUNT(*)", "COUNT(column)"], ["NULL"]],
+  },
+  "master-subnet": {
+    groups: [["서브넷", "Subnet", "FLSM"], ["CIDR"]],
+  },
+  "master-routing": {
+    groups: [["IGP"], ["EGP"], ["OSPF"], ["BGP"], ["RIP"]],
+    wholeAccept: ["라우팅 프로토콜"],
+  },
+  "master-packet-switch": {
+    groups: [["가상회선", "Virtual Circuit"], ["데이터그램", "Datagram"]],
+  },
+  "master-arp-rarp": {
+    groups: [["ARP", "Address Resolution Protocol"], ["RARP", "Reverse ARP"]],
+  },
+  "master-cpu-scheduling": {
+    groups: [["SJF"], ["RR"], ["SRT"]],
+    wholeAccept: ["CPU Scheduling"],
+  },
+  "master-page-replacement": {
+    groups: [["LRU"], ["LFU"]],
+    wholeAccept: ["페이지 교체"],
+  },
+  "master-linux-commands": {
+    groups: [["pwd"], ["ls"], ["cd"], ["cp"]],
+    wholeAccept: ["Linux 명령"],
+  },
+  "master-web-basics": {
+    groups: [["HTTP"], ["Hypertext"], ["HTML"]],
+    wholeAccept: ["Web"],
+  },
+  "master-idea-skipjack": {
+    groups: [["IDEA"], ["SKIPJACK"]],
+    wholeAccept: ["대칭키 알고리즘"],
+  },
+  "master-malware-types": {
+    groups: [["웜"], ["트로이 목마"], ["바이러스"]],
+    wholeAccept: ["Malware"],
+  },
+  "master-social-dark-data": {
+    groups: [["사회공학", "Social Engineering"], ["다크 데이터", "Dark Data"]],
+  },
+  "master-trustzone-typo": {
+    groups: [["TrustZone", "트러스트존"], ["Typosquatting", "타이포스쿼팅"]],
+  },
+  "master-access-control": {
+    groups: [["DAC"], ["MAC"], ["RBAC"]],
+    wholeAccept: ["접근통제 모델"],
+  },
+  "master-error-detection": {
+    groups: [["패리티"], ["CRC"], ["해밍"], ["FEC"], ["BEC"]],
+    wholeAccept: ["오류 검출 및 정정"],
+  },
+  "master-crypto": {
+    groups: [["AES"], ["DES"], ["ARIA"], ["SEED"], ["RSA"], ["ECC"]],
+    wholeAccept: ["암호 알고리즘 분류"],
+  },
+  "master-static-dynamic": {
+    groups: [["정적 분석", "Static Analysis"], ["동적 분석", "Dynamic Analysis"]],
+  },
+  "master-v-model": {
+    groups: [["단위 테스트"], ["통합 테스트"], ["시스템 테스트"], ["인수 테스트"]],
+    wholeAccept: ["V Model"],
+  },
+  "master-alpha-beta": {
+    groups: [["알파 테스트", "Alpha Test"], ["베타 테스트", "Beta Test"]],
+  },
+  "master-fan-in-out": {
+    groups: [["Fan-in", "팬인"], ["Fan-out", "팬아웃"]],
+  },
+  "master-boundary-equivalence": {
+    groups: [["동등 분할", "Equivalence Partitioning"], ["경계값 분석", "Boundary Value Analysis"]],
+  },
+  "master-config-tools": {
+    groups: [["CVS"], ["SVN"], ["Git"]],
+    wholeAccept: ["형상관리 도구"],
+  },
+  "master-pattern-bridge-observer": {
+    groups: [["Bridge", "브리지"], ["Observer", "옵저버"]],
+  },
+  "master-pattern-singleton-visitor": {
+    groups: [["Singleton", "싱글톤"], ["Visitor", "방문자"]],
+  },
+  "master-pattern-categories": {
+    groups: [["생성 패턴"], ["구조 패턴"], ["행위 패턴"]],
+    wholeAccept: ["GoF 분류"],
+  },
+  "master-coverage-basic": {
+    groups: [["문장 커버리지"], ["분기 커버리지"], ["조건 커버리지"]],
+    wholeAccept: ["화이트박스 커버리지"],
+  },
+  "master-stub-driver": {
+    groups: [["스텁", "Stub"], ["드라이버", "Driver"]],
+  },
+  "master-testcase-parts": {
+    groups: [["테스트 조건"], ["테스트 데이터"], ["예상 결과"]],
+    wholeAccept: ["Test Case"],
+  },
+  "master-uml-relations": {
+    groups: [["연관 관계"], ["일반화 관계"], ["의존 관계"]],
+    wholeAccept: ["UML 관계"],
+  },
+  "master-nonfunctional": {
+    groups: [["운영 요구사항"], ["자원 요구사항"], ["성능 요구사항"]],
+    wholeAccept: ["비기능 요구사항"],
+  },
+  "master-cloud-models": {
+    groups: [["IaaS"], ["PaaS"], ["SaaS"]],
+    wholeAccept: ["Cloud Service Model"],
+  },
+  "cs-sql-011": {
+    groups: [["MAX"], ["MIN"]],
+  },
+};
+
 const THEORY_PRACTICE = THEORY_ITEMS.filter(
   (item) => !item.tags.some((tag) => THEORY_EXCLUDED_TAGS.has(tag)),
-).map((item) =>
-  card(
+).map((item) => {
+  const composite = THEORY_COMPOSITE_ANSWERS[item.id];
+  return card(
     `theory-${item.id}`,
     "이론",
     "theory",
     item.heat === "MAX" ? "must" : item.heat === "HIGH" ? "high" : "mid",
     `${item.oneLine}\n\n위 설명의 핵심 개념은?`,
-    [item.title, ...(item.aliases || [])],
+    composite?.groups || [item.title, ...(item.aliases || [])],
     item.title,
     `${item.why} 외우는 법: ${item.memorize}`,
     item.tags,
-  ),
-);
+    composite
+      ? { answerMode: "set", wholeAccept: composite.wholeAccept || [] }
+      : {},
+  );
+});
 
 state = loadState();
 mockSession = restoreMockSession(state.mockDraft);
+if (mockSession) selectedMockMode = mockSession.mode;
 
 function emptyState() {
   return {
@@ -639,7 +797,7 @@ function normalizeMockDraft(value) {
   const flags = {};
   itemIds.forEach((id) => {
     if (isRecord(value.answers) && typeof value.answers[id] === "string") {
-      answers[id] = value.answers[id].slice(0, 10000);
+      answers[id] = value.answers[id].slice(0, 1000);
     }
     if (isRecord(value.flags) && value.flags[id] === true) flags[id] = true;
   });
@@ -647,6 +805,7 @@ function normalizeMockDraft(value) {
   return {
     version: 1,
     id: typeof value.id === "string" ? value.id.slice(0, 80) : `mock-${startedAt}`,
+    mode: value.mode === "weakness" ? "weakness" : "standard",
     itemIds,
     index: Math.min(Math.max(Math.trunc(Number(value.index) || 0), 0), itemIds.length - 1),
     answers,
@@ -749,7 +908,7 @@ function normalizeState(value) {
               .slice(0, 20)
               .map((item) => ({
                 itemId: String(item.itemId),
-                input: typeof item.input === "string" ? item.input.slice(0, 10000) : "",
+                input: typeof item.input === "string" ? item.input.slice(0, 1000) : "",
                 correct: item.correct === true,
                 points: Math.min(Math.max(Number(item.points) || 0, 0), 5),
                 maxPoints: 5,
@@ -757,6 +916,7 @@ function normalizeState(value) {
           : [];
         return {
           id: String(entry.id || "").slice(0, 80),
+          mode: entry.mode === "weakness" ? "weakness" : "standard",
           completedAt: Number.isFinite(entry.completedAt) ? entry.completedAt : 0,
           strictScore: Math.min(Math.max(Number(entry.strictScore) || 0, 0), 100),
           learningScore: Math.min(Math.max(Number(entry.learningScore) || 0, 0), 100),
@@ -787,9 +947,25 @@ function loadState() {
   return readStateFromStorage(localStorage);
 }
 
+function writeStateToStorage(storage, targetState) {
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(targetState));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function saveState() {
   state.version = STATE_VERSION;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const saved = writeStateToStorage(localStorage, state);
+  if (saved) {
+    storageWarningShown = false;
+  } else if (!storageWarningShown && typeof document !== "undefined") {
+    storageWarningShown = true;
+    alert("저장 공간이 부족해 학습 기록을 저장하지 못했습니다. 기록을 내보낸 뒤 오래된 모의고사 이력을 정리해 주세요.");
+  }
+  return saved;
 }
 
 function createExportPayload(targetState = state) {
@@ -846,6 +1022,7 @@ function matchesAnswer(user, item) {
 function answerRule(item) {
   const rules = {
     term: "용어형: 정답 전체 또는 등록된 동의어와 일치해야 한다.",
+    numeric: "숫자형: 부호와 소수점을 포함해 정답 숫자를 정확히 쓴다.",
     output: "출력형: 부호, 소수점, 기호와 출력 순서를 정확히 쓴다.",
     ordered: "순서형: 모든 답을 문제에서 요구한 순서대로 쓴다.",
     set: "복수답형: 필요한 항목을 모두 쓰며 항목 순서는 상관없다.",
@@ -888,6 +1065,14 @@ function poolByMode(mode) {
     return PRACTICE.filter((item) => item.tags.includes(`skill:${currentCoverageSkill}`));
   }
   return PRACTICE;
+}
+
+function syncDrillModeButtons() {
+  document.querySelectorAll(".mode").forEach((button) => {
+    const active = button.dataset.mode === currentMode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
 }
 
 function escapeHtml(value) {
@@ -947,7 +1132,9 @@ function setView(viewId) {
     view.classList.toggle("active-view", view.id === viewId);
   });
   document.querySelectorAll(".tab").forEach((tab) => {
-    tab.classList.toggle("active", tab.dataset.view === viewId);
+    const selected = tab.dataset.view === viewId;
+    tab.classList.toggle("active", selected);
+    tab.setAttribute("aria-selected", String(selected));
   });
   if (viewId === "scope") {
     renderScope();
@@ -968,6 +1155,10 @@ function formatMockDate(timestamp) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(timestamp));
+}
+
+function mockModeLabel(mode) {
+  return mode === "weakness" ? "약점 집중" : "실전 표준";
 }
 
 function hydrateMockHistoryResults(entry) {
@@ -1012,7 +1203,10 @@ function renderMockHistoryDetail(historyId) {
     return;
   }
   const entry = state.mockHistory[entryIndex];
-  const previous = state.mockHistory[entryIndex - 1];
+  const previous = state.mockHistory
+    .slice(0, entryIndex)
+    .reverse()
+    .find((candidate) => candidate.mode === entry.mode);
   const delta = previous ? entry.strictScore - previous.strictScore : null;
   const results = hydrateMockHistoryResults(entry);
   const domains = analyzeMockDomains(results);
@@ -1021,7 +1215,7 @@ function renderMockHistoryDetail(historyId) {
     <div class="history-detail-head">
       <div>
         <h3>${escapeHtml(formatMockDate(entry.completedAt))} 상세 결과</h3>
-        <p>엄격 ${entry.strictScore}점 · 학습용 ${entry.learningScore}점${delta === null ? " · 첫 기록" : ` · 이전보다 ${delta > 0 ? "+" : ""}${delta}점`}${entry.timedOut ? " · 시간 종료" : ""}</p>
+        <p>${mockModeLabel(entry.mode)} · 엄격 ${entry.strictScore}점 · 학습용 ${entry.learningScore}점${delta === null ? " · 첫 기록" : ` · 이전보다 ${delta > 0 ? "+" : ""}${delta}점`}${entry.timedOut ? " · 시간 종료" : ""}</p>
       </div>
       <button type="button" class="ghost-button" data-history-close>닫기</button>
     </div>
@@ -1072,7 +1266,10 @@ function renderMockHistory() {
   }
 
   const latest = history[history.length - 1];
-  const previous = history[history.length - 2];
+  const previous = [...history]
+    .slice(0, -1)
+    .reverse()
+    .find((entry) => entry.mode === latest.mode);
   const latestDelta = previous ? latest.strictScore - previous.strictScore : null;
   trend.textContent = latestDelta === null
     ? `최근 ${latest.strictScore}점`
@@ -1082,11 +1279,14 @@ function renderMockHistory() {
     .slice(0, 6)
     .map((entry, reverseIndex) => {
       const originalIndex = history.length - 1 - reverseIndex;
-      const before = history[originalIndex - 1];
+      const before = history
+        .slice(0, originalIndex)
+        .reverse()
+        .find((candidate) => candidate.mode === entry.mode);
       const delta = before ? entry.strictScore - before.strictScore : null;
       return `
         <button type="button" class="mock-history-row" data-history-id="${escapeHtml(entry.id)}">
-          <span>${escapeHtml(formatMockDate(entry.completedAt))}${entry.timedOut ? " · 시간 종료" : ""}</span>
+          <span>${escapeHtml(formatMockDate(entry.completedAt))} · ${mockModeLabel(entry.mode)}${entry.timedOut ? " · 시간 종료" : ""}</span>
           <strong>엄격 ${entry.strictScore}점</strong>
           <span>학습 ${entry.learningScore}점${delta === null ? " · 첫 기록" : ` · ${delta >= 0 ? "+" : ""}${delta}`}</span>
         </button>
@@ -1320,7 +1520,9 @@ function renderCodeAcademy() {
   if (!root || !lesson) return;
 
   document.querySelectorAll(".academy-lang").forEach((button) => {
-    button.classList.toggle("active", button.dataset.lang === currentAcademyLang);
+    const active = button.dataset.lang === currentAcademyLang;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
   });
 
   root.innerHTML = `
@@ -1593,7 +1795,7 @@ function gradeCurrent() {
   updateStats();
 }
 
-function recordResult(item, correct) {
+function recordResult(item, correct, { persist = true } = {}) {
   state.log.push({ id: item.id, correct, time: Date.now() });
   state.log = state.log.slice(-1000);
   state.mastery[item.id] = masteryTransition(state.mastery[item.id], correct);
@@ -1603,7 +1805,7 @@ function recordResult(item, correct) {
   } else {
     state.wrong[item.id] = (state.wrong[item.id] || 0) + 1;
   }
-  saveState();
+  if (persist) saveState();
 }
 
 function showCurrentAnswer() {
@@ -1675,12 +1877,16 @@ function startMock() {
   const examPool = poolByMode("exam");
   const pool = examPool.length ? examPool : [...poolByMode("must"), ...poolByMode("all")];
   const picked = [];
+  const pickForMock = (items) =>
+    selectedMockMode === "weakness"
+      ? pickWeighted(items)
+      : items[Math.floor(Math.random() * items.length)];
 
   const draw = (items, count) => {
     while (count > 0) {
       const available = items.filter((item) => !picked.some((candidate) => candidate.id === item.id));
       if (!available.length) return;
-      picked.push(pickWeighted(available));
+      picked.push(pickForMock(available));
       count -= 1;
     }
   };
@@ -1695,6 +1901,7 @@ function startMock() {
   mockSession = {
     version: 1,
     id: `mock-${startedAt}`,
+    mode: selectedMockMode,
     itemIds: picked.map((item) => item.id),
     index: 0,
     answers: {},
@@ -1713,6 +1920,7 @@ function serializeMockSession(session) {
   return {
     version: 1,
     id: session.id,
+    mode: session.mode,
     itemIds: session.itemIds,
     index: session.index,
     answers: session.answers,
@@ -1790,7 +1998,17 @@ function setMockIndex(index) {
   renderMock();
 }
 
+function syncMockModeButtons() {
+  document.querySelectorAll(".mock-mode").forEach((button) => {
+    const active = button.dataset.mockMode === selectedMockMode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+    button.disabled = Boolean(mockSession);
+  });
+}
+
 function renderMock() {
+  syncMockModeButtons();
   const root = document.getElementById("mockArea");
   if (!mockSession) {
     stopMockTimer();
@@ -1809,8 +2027,8 @@ function renderMock() {
   const progress = mockProgress();
   root.innerHTML = `
     <div class="mock-exam-shell">
-      <div class="mock-status" role="status">
-        <div><span>남은 시간</span><strong id="mockTimer">${formatRemaining(mockSession.deadline - Date.now())}</strong></div>
+      <div class="mock-status">
+        <div><span>남은 시간</span><strong id="mockTimer" aria-live="off">${formatRemaining(mockSession.deadline - Date.now())}</strong></div>
         <div><span>응답</span><strong><span id="mockAnswered">${progress.answered}</span> / ${mockSession.items.length}</strong></div>
         <div><span>미응답</span><strong id="mockUnanswered">${progress.unanswered}</strong></div>
         <div><span>재검토</span><strong id="mockFlagged">${progress.flagged}</strong></div>
@@ -1833,12 +2051,12 @@ function renderMock() {
       <div class="mock-question">
         <div class="question-head">
           <span class="mock-progress">${mockSession.index + 1} / ${mockSession.items.length}</span>
-          <span class="pill">${escapeHtml(item.domain)}</span>
+          <span class="pill">${mockModeLabel(mockSession.mode)} · ${escapeHtml(item.domain)}</span>
         </div>
         <pre class="question-text">${escapeHtml(item.question)}</pre>
         <label class="answer-box">
           <span>답</span>
-          <textarea id="mockAnswer" rows="3" autocomplete="off">${escapeHtml(mockSession.answers[item.id] || "")}</textarea>
+          <textarea id="mockAnswer" rows="3" maxlength="1000" autocomplete="off">${escapeHtml(mockSession.answers[item.id] || "")}</textarea>
         </label>
         <p class="answer-rule">${escapeHtml(answerRule(item))}</p>
         <label class="mock-flag"><input id="mockFlag" type="checkbox" ${mockSession.flags[item.id] ? "checked" : ""} /><span>나중에 다시 보기</span></label>
@@ -1897,7 +2115,7 @@ function finishMock({ timedOut = false, skipConfirm = false } = {}) {
     const scored = window.ANSWER_ENGINE.score(input, item, 5);
     return { item, input, ...scored };
   });
-  results.forEach((result) => recordResult(result.item, result.correct));
+  results.forEach((result) => recordResult(result.item, result.correct, { persist: false }));
   const maximum = results.length * 5;
   const strictScore = maximum
     ? Math.round((results.filter((result) => result.correct).length * 5 * 100) / maximum)
@@ -1907,15 +2125,19 @@ function finishMock({ timedOut = false, skipConfirm = false } = {}) {
     : 0;
   const completed = {
     id: session.id,
+    mode: session.mode,
     completedAt: Date.now(),
     strictScore,
     learningScore,
     timedOut,
     results,
   };
-  state.mockBest = state.mockBest === null ? strictScore : Math.max(state.mockBest, strictScore);
+  if (session.mode === "standard") {
+    state.mockBest = state.mockBest === null ? strictScore : Math.max(state.mockBest, strictScore);
+  }
   state.mockHistory.push({
     id: completed.id,
+    mode: completed.mode,
     completedAt: completed.completedAt,
     strictScore,
     learningScore,
@@ -1938,13 +2160,14 @@ function finishMock({ timedOut = false, skipConfirm = false } = {}) {
 }
 
 function renderMockResult(result) {
+  syncMockModeButtons();
   const root = document.getElementById("mockArea");
   root.innerHTML = `
     <div class="mock-result">
       <div class="mock-score-summary">
         <div><span>엄격 채점</span><strong>${result.strictScore}점</strong></div>
         <div><span>학습용 부분점수</span><strong>${result.learningScore}점</strong></div>
-        <p>${result.timedOut ? "제한 시간이 끝나 자동 제출됐다. " : ""}${result.strictScore >= 60 ? "앱 문제은행에서는 60점 이상이다." : "엄격 채점 60점 미만이다. 오답과 오늘 복습부터 다시 푼다."} 실제 시험 합격 예측값은 아니다.</p>
+        <p>${mockModeLabel(result.mode)} · ${result.timedOut ? "제한 시간이 끝나 자동 제출됐다. " : ""}${result.strictScore >= 60 ? "앱 문제은행에서는 60점 이상이다." : "엄격 채점 60점 미만이다. 오답과 오늘 복습부터 다시 푼다."} 실제 시험 합격 예측값은 아니다.</p>
       </div>
       ${result.results
         .map((entry, index) => `
@@ -1983,6 +2206,7 @@ async function importProgress(file) {
     mockSession = restoreMockSession(state.mockDraft);
     lastMockResult = null;
     selectedMockHistoryId = null;
+    selectedMockMode = mockSession?.mode || "standard";
     saveState();
     renderDayPlan();
     renderQuestion();
@@ -1996,16 +2220,29 @@ async function importProgress(file) {
 
 function bindEvents() {
   document.querySelectorAll(".tab").forEach((tab) => {
+    const panel = document.getElementById(tab.dataset.view);
+    tab.id = `tab-${tab.dataset.view}`;
+    tab.setAttribute("aria-controls", tab.dataset.view);
+    panel?.setAttribute("role", "tabpanel");
+    panel?.setAttribute("aria-labelledby", tab.id);
     tab.addEventListener("click", () => setView(tab.dataset.view));
   });
 
   document.querySelectorAll(".mode").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.mode === currentMode));
     button.addEventListener("click", () => {
-      document.querySelectorAll(".mode").forEach((mode) => mode.classList.remove("active"));
-      button.classList.add("active");
       currentCoverageSkill = null;
       currentMode = button.dataset.mode;
+      syncDrillModeButtons();
       renderQuestion();
+    });
+  });
+
+  document.querySelectorAll(".mock-mode").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (mockSession) return;
+      selectedMockMode = button.dataset.mockMode;
+      syncMockModeButtons();
     });
   });
 
@@ -2053,7 +2290,7 @@ function bindEvents() {
     if (button.dataset.coverageAction === "practice") {
       currentCoverageSkill = skillId;
       currentMode = "coverage";
-      document.querySelectorAll(".mode").forEach((mode) => mode.classList.remove("active"));
+      syncDrillModeButtons();
       setView("drill");
       renderQuestion();
       return;
@@ -2080,9 +2317,7 @@ function bindEvents() {
     setView("drill");
     currentCoverageSkill = null;
     currentMode = currentAcademyLang === "SQL" ? "sql" : "code";
-    document.querySelectorAll(".mode").forEach((mode) => {
-      mode.classList.toggle("active", mode.dataset.mode === currentMode);
-    });
+    syncDrillModeButtons();
     renderQuestion();
   });
   document.getElementById("nextQuestion").addEventListener("click", renderQuestion);
@@ -2134,6 +2369,7 @@ function bindEvents() {
     mockSession = null;
     lastMockResult = null;
     selectedMockHistoryId = null;
+    selectedMockMode = "standard";
     saveState();
     renderDayPlan();
     renderQuestion();
@@ -2148,9 +2384,7 @@ function bindEvents() {
       if (cardButton.dataset.mode) {
         currentCoverageSkill = null;
         currentMode = cardButton.dataset.mode;
-        document.querySelectorAll(".mode").forEach((mode) => {
-          mode.classList.toggle("active", mode.dataset.mode === currentMode);
-        });
+        syncDrillModeButtons();
         renderQuestion();
       }
     });
@@ -2160,9 +2394,7 @@ function bindEvents() {
     setView("drill");
     currentCoverageSkill = null;
     currentMode = "must";
-    document.querySelectorAll(".mode").forEach((mode) => {
-      mode.classList.toggle("active", mode.dataset.mode === "must");
-    });
+    syncDrillModeButtons();
     renderQuestion();
   });
 
@@ -2170,9 +2402,7 @@ function bindEvents() {
     setView("drill");
     currentCoverageSkill = null;
     currentMode = "must";
-    document.querySelectorAll(".mode").forEach((mode) => {
-      mode.classList.toggle("active", mode.dataset.mode === "must");
-    });
+    syncDrillModeButtons();
     renderQuestion();
     document.getElementById("hintBox").hidden = false;
     document.getElementById("feedback").textContent =
@@ -2207,6 +2437,7 @@ window.JEONGCHEOGI_AUDIT = Object.freeze({
   normalizeState,
   readStateFromStorage,
   stateSnapshot: () => createExportPayload().state,
+  writeStateToStorage,
 });
 
 if (typeof document !== "undefined") boot();

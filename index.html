@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="styles.css?v=14" />
+    <link rel="stylesheet" href="styles.css?v=15" />
   </head>
   <body>
     <header class="app-header">
@@ -35,15 +35,15 @@
       </div>
     </header>
 
-    <nav class="tabs" aria-label="앱 메뉴">
-      <button class="tab active" data-view="dashboard" type="button">대시보드</button>
-      <button class="tab" data-view="theory" type="button">왕초보 이론서</button>
-      <button class="tab" data-view="codeacademy" type="button">코드 입문서</button>
-      <button class="tab" data-view="scope" type="button">통합 범위</button>
-      <button class="tab" data-view="coverage" type="button">기출 260 커버</button>
-      <button class="tab" data-view="drill" type="button">훈련장</button>
-      <button class="tab" data-view="mock" type="button">모의고사</button>
-      <button class="tab" data-view="survival" type="button">5일 루틴</button>
+    <nav class="tabs" aria-label="앱 메뉴" role="tablist">
+      <button class="tab active" data-view="dashboard" type="button" role="tab" aria-selected="true">대시보드</button>
+      <button class="tab" data-view="theory" type="button" role="tab" aria-selected="false">왕초보 이론서</button>
+      <button class="tab" data-view="codeacademy" type="button" role="tab" aria-selected="false">코드 입문서</button>
+      <button class="tab" data-view="scope" type="button" role="tab" aria-selected="false">통합 범위</button>
+      <button class="tab" data-view="coverage" type="button" role="tab" aria-selected="false">기출 260 커버</button>
+      <button class="tab" data-view="drill" type="button" role="tab" aria-selected="false">훈련장</button>
+      <button class="tab" data-view="mock" type="button" role="tab" aria-selected="false">모의고사</button>
+      <button class="tab" data-view="survival" type="button" role="tab" aria-selected="false">5일 루틴</button>
     </nav>
 
     <main>
@@ -72,7 +72,7 @@
           <article class="metric">
             <span>모의고사</span>
             <strong id="mockBest">-</strong>
-            <small>최고 점수</small>
+            <small>실전 표준 최고 점수</small>
           </article>
         </div>
 
@@ -322,7 +322,7 @@
           <div id="hintBox" class="hint-box" hidden></div>
           <label class="answer-box">
             <span>답</span>
-            <input id="answerInput" autocomplete="off" placeholder="짧게 쓰면 된다. 예: DISTINCT" />
+            <input id="answerInput" autocomplete="off" maxlength="1000" placeholder="짧게 쓰면 된다. 예: DISTINCT" />
           </label>
           <p id="answerRule" class="answer-rule"></p>
           <div class="button-row">
@@ -348,7 +348,13 @@
           <section class="panel">
             <div class="panel-title">
               <h2>20문항 2시간 30분 시험형 연습</h2>
-              <button id="startMock" type="button" class="primary-button">새 시험 시작</button>
+              <div class="mock-start-controls">
+                <div class="segmented" role="group" aria-label="모의고사 출제 방식">
+                  <button class="mock-mode active" data-mock-mode="standard" type="button" aria-pressed="true">실전 표준</button>
+                  <button class="mock-mode" data-mock-mode="weakness" type="button" aria-pressed="false">약점 집중</button>
+                </div>
+                <button id="startMock" type="button" class="primary-button">새 시험 시작</button>
+              </div>
             </div>
             <div id="mockArea" class="mock-area">
               <p class="empty-state">새 시험을 누르면 기출급 문제은행에서 코드 7문항, SQL/DB 4문항, 이론 9문항을 섞어 낸다.</p>
@@ -359,6 +365,8 @@
             <ul class="plain-list">
               <li>Q-Net 기준 실제 시험은 필답형 2시간 30분이며 60점 이상 합격이다.</li>
               <li>이 화면의 점수는 앱 문제은행 학습 점수이며 실제 시험 점수 예측값이 아니다.</li>
+              <li>실전 표준은 코드 7·SQL/DB 4·이론 9문항을 균등 추출해 회차 비교에 사용한다.</li>
+              <li>약점 집중은 오답·필수·복습 예정 문항의 출제 확률을 높여 취약 영역을 보강한다.</li>
               <li>문항을 자유롭게 이동하고 재검토 표시를 남길 수 있으며, 답은 기기에 자동 저장된다.</li>
               <li>부분답 문항도 엄격 채점은 핵심 키워드를 모두 써야 정답이다. 부분점수는 학습 상태 확인용이다.</li>
               <li>진행 중 기록과 전체 학습 기록은 JSON 파일로 내보내 다른 기기에서 가져올 수 있다.</li>
@@ -391,19 +399,19 @@
       </section>
     </main>
 
-    <script src="theory-deep.js?v=14"></script>
-    <script src="theory-mega.js?v=14"></script>
-    <script src="code-sql-mastery.js?v=14"></script>
-    <script src="code-sql-conquest.js?v=14"></script>
-    <script src="code-sql-grandmaster.js?v=14"></script>
-    <script src="code-java-generics.js?v=14"></script>
-    <script src="exam-master-theory.js?v=14"></script>
-    <script src="exam-master-code-c.js?v=14"></script>
-    <script src="exam-master-code-jps.js?v=14"></script>
-    <script src="exam-master-academy.js?v=14"></script>
-    <script src="exam-coverage.js?v=14"></script>
-    <script src="answer-engine.js?v=14"></script>
-    <script src="app.js?v=14"></script>
-    <script src="pwa.js?v=14"></script>
+    <script src="theory-deep.js?v=15"></script>
+    <script src="theory-mega.js?v=15"></script>
+    <script src="code-sql-mastery.js?v=15"></script>
+    <script src="code-sql-conquest.js?v=15"></script>
+    <script src="code-sql-grandmaster.js?v=15"></script>
+    <script src="code-java-generics.js?v=15"></script>
+    <script src="exam-master-theory.js?v=15"></script>
+    <script src="exam-master-code-c.js?v=15"></script>
+    <script src="exam-master-code-jps.js?v=15"></script>
+    <script src="exam-master-academy.js?v=15"></script>
+    <script src="exam-coverage.js?v=15"></script>
+    <script src="answer-engine.js?v=15"></script>
+    <script src="app.js?v=15"></script>
+    <script src="pwa.js?v=15"></script>
   </body>
 </html>

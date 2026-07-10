@@ -130,6 +130,7 @@ h2 {
 
 .tab,
 .mode,
+.mock-mode,
 .academy-lang,
 .ghost-button,
 .primary-button {
@@ -143,6 +144,7 @@ h2 {
 
 .tab.active,
 .mode.active,
+.mock-mode.active,
 .academy-lang.active,
 .primary-button {
   border-color: var(--accent);
@@ -153,6 +155,7 @@ h2 {
 .ghost-button:hover,
 .tab:hover,
 .mode:hover,
+.mock-mode:hover,
 .academy-lang:hover {
   border-color: var(--accent);
 }
@@ -318,6 +321,12 @@ main {
   gap: 10px;
   align-items: center;
   justify-content: space-between;
+}
+
+.mock-start-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .toolbar {
@@ -1220,6 +1229,16 @@ textarea {
   .button-row {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .mock-start-controls {
+    display: grid;
+    width: 100%;
+  }
+
+  .mock-start-controls .segmented {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .mock-status {

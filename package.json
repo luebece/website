@@ -2,10 +2,12 @@
   "name": "jeongcheogi-trainer",
   "private": true,
   "scripts": {
+    "build:release": "node scripts/build-release.cjs",
     "test": "node tests/quality-audit.cjs",
     "test:e2e": "node tests/browser-e2e.cjs"
   },
   "devDependencies": {
+    "fflate": "^0.8.2",
     "playwright": "^1.61.1"
   }
 }

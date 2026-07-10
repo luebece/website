@@ -29,6 +29,7 @@ const bootStoredState = {
   mastery: {},
   mockDraft: {
     id: "boot-restore-test",
+    mode: "weakness",
     itemIds: ["x-c-003", "gm-java-011"],
     index: 1,
     answers: { "x-c-003": "6 5" },
@@ -39,6 +40,7 @@ const bootStoredState = {
   mockHistory: [
     {
       id: "history-restore-test",
+      mode: "weakness",
       completedAt: 1_700_000_100_000,
       strictScore: 50,
       learningScore: 62.5,
@@ -76,11 +78,13 @@ const bootRestored = audit.stateSnapshot();
 assert.equal(bootRestored.day, 3, "saved day was not restored during app initialization");
 assert.equal(bootRestored.wrong["x-c-003"], 2, "saved wrong answer was not restored");
 assert.equal(bootRestored.mockDraft.id, "boot-restore-test", "mock draft was not restored");
+assert.equal(bootRestored.mockDraft.mode, "weakness");
 assert.equal(bootRestored.mockDraft.answers["x-c-003"], "6 5");
 assert.equal(bootRestored.mockDraft.flags["gm-java-011"], true);
 assert.equal(bootRestored.mockHistory.length, 1);
 assert.equal(bootRestored.mockHistory[0].results.length, 2);
 assert.equal(bootRestored.mockHistory[0].results[1].input, "20");
+assert.equal(bootRestored.mockHistory[0].mode, "weakness");
 
 assert.deepEqual(
   [...audit.scope.map((item) => item.officialNo)].sort((a, b) => a - b),
@@ -258,6 +262,14 @@ assert.ok(!engine.matches("6", numeric("-6")), "negative sign was ignored");
 assert.ok(engine.matches("2.0", numeric("2.0")));
 assert.ok(!engine.matches("20", numeric("2.0")), "decimal point was ignored");
 
+const strictNumericItems = items.filter((item) => engine.answerMode(item) === "numeric");
+assert.equal(strictNumericItems.length, 4, "unexpected strict numeric item count");
+for (const item of strictNumericItems) {
+  assert.ok(engine.matches(item.answer, item), `${item.id}: numeric canonical answer rejected`);
+  assert.ok(!engine.matches(`-${item.answer}`, item), `${item.id}: negative sign was ignored`);
+  assert.ok(!engine.matches(`+${item.answer}`, item), `${item.id}: positive sign was ignored`);
+}
+
 const caseSensitiveOutput = {
   answer: "Ab",
   accept: ["Ab"],
@@ -314,6 +326,36 @@ const singletonTerm = audit.practice.find((item) => item.id === "code-008");
 assert.ok(singletonTerm, "code-008 fixture missing");
 assert.equal(engine.answerMode(singletonTerm), "term", "code concept was treated as program output");
 assert.ok(engine.matches("싱글톤", singletonTerm), "valid code-concept alias was rejected");
+
+const strictCompositeTheory = audit.theoryPractice.filter(
+  (item) => item.groups?.length && item.answerMode === "set",
+);
+assert.equal(strictCompositeTheory.length, 41, "unexpected composite theory item count");
+for (const item of strictCompositeTheory) {
+  for (const group of item.groups) {
+    assert.ok(
+      !engine.matches(group[0], item),
+      `${item.id}: one component was accepted as the whole composite answer`,
+    );
+  }
+  for (const alias of item.wholeAccept || []) {
+    assert.ok(engine.matches(alias, item), `${item.id}: whole-category alias rejected`);
+    assert.ok(
+      !engine.matches(`틀림${alias}오답`, item),
+      `${item.id}: wrapped whole-category alias accepted`,
+    );
+  }
+}
+const recoveryComposite = strictCompositeTheory.find(
+  (item) => item.id === "theory-master-recovery",
+);
+assert.ok(recoveryComposite, "REDO/UNDO composite fixture missing");
+assert.ok(!engine.matches("재실행", recoveryComposite));
+assert.ok(engine.matches("재실행, 취소", recoveryComposite));
+const routingComposite = strictCompositeTheory.find(
+  (item) => item.id === "theory-master-routing",
+);
+assert.ok(engine.matches("라우팅 프로토콜", routingComposite));
 
 const domainAnalysis = audit.analyzeMockDomains([
   { item: postIncrementOutput, correct: true, points: 5, maxPoints: 5 },
@@ -373,6 +415,7 @@ const normalizedDraft = audit.normalizeMockDraft({
 });
 assert.deepEqual(Array.from(normalizedDraft.itemIds), [firstItemId, secondItemId]);
 assert.equal(normalizedDraft.index, 1);
+assert.equal(normalizedDraft.mode, "standard");
 assert.equal(normalizedDraft.answers[firstItemId], "answer");
 assert.equal(normalizedDraft.answers.unknown, undefined);
 assert.equal(normalizedDraft.flags[secondItemId], true);
@@ -397,6 +440,16 @@ const restoredFromStorage = audit.readStateFromStorage({
 });
 assert.equal(restoredFromStorage.day, 4);
 assert.equal(restoredFromStorage.mockDraft.answers[firstItemId], "answer");
+let storedPayload = null;
+assert.equal(
+  audit.writeStateToStorage({ setItem: (_key, value) => { storedPayload = value; } }, backupState),
+  true,
+);
+assert.equal(JSON.parse(storedPayload).day, 4);
+assert.equal(
+  audit.writeStateToStorage({ setItem: () => { throw new Error("quota"); } }, backupState),
+  false,
+);
 assert.throws(
   () => audit.normalizeImportedState({ app: "other-app", state: {} }),
   /이 앱에서 내보낸/,
@@ -411,12 +464,12 @@ const assetRefs = [
   ),
 ];
 for (const ref of assetRefs) {
-  assert.ok(ref.endsWith("?v=14"), `unversioned executable asset: ${ref}`);
+  assert.ok(ref.endsWith("?v=15"), `unversioned executable asset: ${ref}`);
   assert.ok(fs.existsSync(ref.split("?")[0]), `missing executable asset: ${ref}`);
   assert.ok(serviceWorker.includes(`"./${ref}"`), `service worker does not cache: ${ref}`);
 }
 assert.ok(
-  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v14"'),
+  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v15"'),
   "service worker cache version mismatch",
 );
 for (const id of [
@@ -432,6 +485,17 @@ for (const id of [
   assert.ok(html.includes(`id="${id}"`), `missing required UI control: ${id}`);
 }
 assert.ok(html.includes('data-mode="review"'), "review drill mode is missing");
+assert.ok(html.includes('role="tablist"'), "tab navigation semantics are missing");
+assert.ok(html.includes('data-mock-mode="standard"'), "standard mock mode is missing");
+assert.ok(html.includes('data-mock-mode="weakness"'), "weakness mock mode is missing");
+assert.ok(html.includes('maxlength="1000"'), "answer length limit is missing");
+assert.ok(
+  fs.readFileSync("app.js", "utf8").includes('id="mockAnswer" rows="3" maxlength="1000"'),
+  "mock answer length limit is missing",
+);
+const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+assert.equal(packageJson.scripts["build:release"], "node scripts/build-release.cjs");
+assert.ok(fs.existsSync("scripts/build-release.cjs"), "release ZIP builder is missing");
 assert.ok(
   fs.readFileSync("app.js", "utf8").includes("2026.1.1~2026.12.31"),
   "2026 official criteria source missing",
@@ -444,6 +508,8 @@ console.log(
       maliciousWrappersRejected: items.length,
       unsafeOutputAliasesRejected: rejectedOutputAliases,
       compatibleDuplicateQuestions,
+      strictNumericItems: strictNumericItems.length,
+      strictCompositeTheory: strictCompositeTheory.length,
       orderedReversalsRejected: reversedOrderedChecked,
       coverageReady: `${coverage.filter((item) => item.ready).length}/${coverage.length}`,
       modeCounts,

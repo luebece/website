@@ -1,5 +1,6 @@
 .agents/
 .codex/
 node_modules/
+dist/
 playwright-report/
 test-results/

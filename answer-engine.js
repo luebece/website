@@ -4,6 +4,7 @@
   const ORDER_HINT =
     /순서|순서대로|차례|처음부터|끝까지|바깥에서|안쪽으로|왼쪽부터|오른쪽부터|각각|반대 방향|처리 순서|단계/;
   const OUTPUT_HINT = /출력값|출력 값|출력 결과|실행 결과|결과값/;
+  const NUMERIC_PATTERN = /^[+-]?\d+(?:\.\d+)?$/;
 
   function text(value) {
     return String(value ?? "").normalize("NFKC").toLowerCase().trim();
@@ -35,6 +36,10 @@
 
   function outputCandidates(item) {
     return unique([item.answer, ...(item.outputAccept || [])].map(String));
+  }
+
+  function numericCandidates(item) {
+    return unique([item.answer, ...(item.numericAccept || [])].map(String));
   }
 
   function isSymbolSensitiveAnswer(item) {
@@ -168,13 +173,25 @@
     if (item.groups?.length) {
       return ORDER_HINT.test(String(item.question || "")) ? "ordered" : "set";
     }
-    return isSymbolSensitiveAnswer(item) ? "output" : "term";
+    if (isSymbolSensitiveAnswer(item)) return "output";
+    if (NUMERIC_PATTERN.test(String(item.answer || "").normalize("NFKC").trim())) {
+      return "numeric";
+    }
+    return "term";
   }
 
   function evaluate(user, item) {
     const rawUser = String(user ?? "").trim();
     const mode = answerMode(item);
     if (!rawUser) return { correct: false, mode, reason: "empty" };
+
+    if (mode === "numeric") {
+      const normalizedUser = rawUser.normalize("NFKC");
+      const correct = numericCandidates(item).some(
+        (candidate) => String(candidate).normalize("NFKC").trim() === normalizedUser,
+      );
+      return { correct, mode, reason: correct ? "exact-numeric" : "numeric-mismatch" };
+    }
 
     if (mode === "output") {
       const normalizedUser = normalizeOutput(rawUser);
@@ -189,6 +206,12 @@
 
     if (compactTerm(item.answer) === normalizedUser) {
       return { correct: true, mode, reason: "canonical" };
+    }
+
+    if (
+      item.wholeAccept?.some((candidate) => compactTerm(candidate) === normalizedUser)
+    ) {
+      return { correct: true, mode, reason: "whole-alias" };
     }
 
     if (!item.groups?.length) {
@@ -267,6 +290,7 @@
     evaluate,
     matches: (user, item) => evaluate(user, item).correct,
     normalizeOutput,
+    numericPattern: NUMERIC_PATTERN,
     score,
   });
 })(typeof window === "undefined" ? globalThis : window);
