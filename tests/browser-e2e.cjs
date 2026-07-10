@@ -79,6 +79,7 @@ async function main() {
       return {
         mode: state.mockDraft.mode,
         form: state.mockDraft.form,
+        formVersion: state.mockDraft.formVersion,
         code: picked.filter((item) => item.type === "code").length,
         sql: picked.filter((item) => item.type === "sql").length,
         db: picked.filter((item) => item.type === "db").length,
@@ -93,6 +94,7 @@ async function main() {
     assert.deepEqual(standardComposition, {
       mode: "standard",
       form: "A",
+      formVersion: 1,
       code: 7,
       sql: 2,
       db: 2,
@@ -173,24 +175,44 @@ async function main() {
       "weakness",
     );
 
-    console.log("e2e: migrate legacy mock history");
+    console.log("e2e: keep standard-form score series separate");
     await page.evaluate(() => {
       localStorage.setItem("jeongcheogi_5day_trainer_v1", JSON.stringify({
-        version: 2,
+        version: 4,
         day: 1,
         mockBest: 80,
+        mockBestFormVersion: 1,
+        mockHistory: [
+          { id: "form-a", mode: "standard", form: "A", formVersion: 1, strictScore: 40, learningScore: 40 },
+          { id: "form-b", mode: "standard", form: "B", formVersion: 1, strictScore: 80, learningScore: 80 },
+        ],
+      }));
+    });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    assert.equal(await page.locator("#mockTrend").textContent(), "최근 80점");
+    const crossFormRows = page.locator(".mock-history-row");
+    assert.equal(await crossFormRows.count(), 2);
+    assert.ok((await crossFormRows.nth(0).innerText()).includes("첫 기록"));
+
+    console.log("e2e: migrate v3 random standard history");
+    await page.evaluate(() => {
+      localStorage.setItem("jeongcheogi_5day_trainer_v1", JSON.stringify({
+        version: 3,
+        day: 1,
+        mockBest: 88,
         mockHistory: [{
-          id: "legacy-history",
+          id: "v3-random-standard",
+          mode: "standard",
           completedAt: Date.now(),
-          strictScore: 80,
-          learningScore: 80,
+          strictScore: 88,
+          learningScore: 88,
           results: [],
         }],
       }));
     });
     await page.reload({ waitUntil: "domcontentloaded" });
     assert.equal(await page.locator("#mockBest").textContent(), "-");
-    assert.ok((await page.locator(".mock-history-row").innerText()).includes("이전 방식"));
+    assert.ok((await page.locator(".mock-history-row").innerText()).includes("이전 표준(무작위)"));
 
     console.log("e2e: verify mobile standard-form controls");
     await page.setViewportSize({ width: 390, height: 844 });
@@ -224,7 +246,8 @@ async function main() {
           standardComposition: "A형 7/4/9 · C3/Java3/Python1 · 최우선7 · 13분야",
           atomicSubmitWrites: 1,
           weaknessMode: true,
-          legacyMigration: true,
+          crossFormSeries: true,
+          v3RandomMigration: true,
           mobileFormLayout: true,
           persistedHistoryRows: 20,
           browserErrors: browserErrors.length,

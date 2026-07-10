@@ -438,7 +438,7 @@ const BEGINNER_GUIDES = {
 
 const PRACTICE = [
   card("db-001", "DB/SQL", "sql", "must", "SQL에서 중복 행을 제거해 조회하는 예약어는?", ["distinct", "중복제거"], "DISTINCT", "SELECT DISTINCT 컬럼 FROM 테이블 형태로 쓴다.", ["SQL", "DISTINCT"]),
-  card("db-002", "DB/SQL", "sql", "must", "DEPT 값의 종류 수만 세려면 COUNT 안에 어떤 표현을 넣는가?", ["countdistinctdept", "count(distinctdept)", "distinct"], "COUNT(DISTINCT DEPT)", "행 수가 아니라 서로 다른 값의 개수다.", ["SQL", "집계"]),
+  card("db-002", "DB/SQL", "sql", "must", "DEPT 값의 종류 수만 세려면 COUNT 안에 어떤 표현을 넣는가?", ["COUNT(DISTINCT DEPT)"], "COUNT(DISTINCT DEPT)", "행 수가 아니라 서로 다른 값의 개수다.", ["SQL", "집계"], { answerMode: "sql-literal" }),
   card("db-003", "DB/SQL", "sql", "must", "테이블 생성, 변경, 삭제를 담당하는 SQL 언어 분류는?", ["ddl", "데이터정의어"], "DDL", "CREATE, ALTER, DROP, TRUNCATE가 대표적이다.", ["SQL", "DDL"]),
   card("db-004", "DB/SQL", "sql", "must", "SELECT, INSERT, UPDATE, DELETE는 어떤 SQL 언어 분류인가?", ["dml", "데이터조작어"], "DML", "데이터를 조회하거나 조작한다.", ["SQL", "DML"]),
   card("db-005", "DB/SQL", "sql", "high", "GRANT와 REVOKE가 속한 SQL 언어 분류는?", ["dcl", "데이터제어어"], "DCL", "권한을 부여하거나 회수한다.", ["SQL", "DCL"]),
@@ -472,7 +472,7 @@ const PRACTICE = [
   card("code-012", "코드", "code", "high", "Python 출력값은?\na = [1, 2, 3]\nb = a\nb.append(4)\nprint(len(a))", ["4"], "4", "b는 a와 같은 리스트를 참조한다.", ["Python", "참조"]),
   card("code-013", "코드", "code", "high", "재귀 함수가 자기 자신을 멈추게 하는 조건을 무엇이라 하는가?", ["종료조건", "basecase", "기저조건"], "기저 조건", "없으면 무한 재귀가 된다.", ["알고리즘", "재귀"]),
   card("code-014", "코드", "code", "mid", "C 삼항 연산자 a ? b : c 에서 a가 0이면 어느 값이 선택되는가?", ["c", "뒤", "세번째"], "c", "조건식이 거짓이면 콜론 뒤 값이다.", ["C", "삼항연산자"]),
-  card("code-015", "코드", "code", "mid", "Python에서 리스트 끝에 원소를 추가하는 메서드는?", ["append"], "append", "extend는 iterable을 풀어서 붙인다.", ["Python", "리스트"], { answerMode: "literal" }),
+  card("code-015", "코드", "code", "mid", "Python에서 리스트 끝에 원소를 추가하는 메서드는?", ["append", "append()"], "append", "extend는 iterable을 풀어서 붙인다.", ["Python", "리스트"], { answerMode: "literal" }),
 
   card("net-001", "네트워크/OS", "netos", "must", "/23 서브넷 마스크를 십진수로 쓰시오.", ["255.255.254.0", "2552552540"], "255.255.254.0", "/23은 11111111.11111111.11111110.00000000.", ["CIDR", "서브넷"]),
   card("net-002", "네트워크/OS", "netos", "must", "192.168.11.20/23 이 속한 네트워크 주소는?", ["192.168.10.0", "192168100"], "192.168.10.0", "/23은 세 번째 옥텟이 2씩 묶인다. 10~11 블록.", ["CIDR", "서브넷"]),
@@ -522,10 +522,58 @@ const PRACTICE = [
 PRACTICE.push(...(window.CODE_SQL_PRACTICE_ROWS || []).map((row) => card(...row)));
 
 const STORAGE_KEY = "jeongcheogi_5day_trainer_v1";
-const STATE_VERSION = 3;
+const STATE_VERSION = 4;
 const BACKUP_APP_ID = "jeongcheogi-trainer";
 const MOCK_DURATION_MS = 150 * 60 * 1000;
 const STANDARD_MOCK_FORMS = ["A", "B", "C", "D", "E"];
+const STANDARD_MOCK_FORM_VERSION = 1;
+const STANDARD_MOCK_FORM_IDS = Object.freeze({
+  A: [
+    "exam-c-recursion-1", "exam-c-union-bit-1", "exam-c-double-pointer-1",
+    "exam-java-recursion-1", "exam-java-enum-1", "exam-java-interface-2",
+    "exam-py-default-args-2", "master-sql-group-q1", "master-sql-null-count-q1",
+    "master-integrity-q2", "master-candidate-key-q1", "master-isms-q2",
+    "master-session-hijacking-q2", "master-subnet-q2", "master-raid-q2",
+    "master-coverage-basic-q1", "master-pattern-bridge-observer-q1",
+    "master-web-basics-q2", "master-uml-relations-q1", "master-nonfunctional-q2",
+  ],
+  B: [
+    "exam-c-string-pointer-3", "exam-c-function-pointer-1", "exam-c-string-pointer-2",
+    "exam-java-array-return-2", "exam-java-inheritance-2", "exam-java-overload-1",
+    "exam-py-default-args-2", "master-sql-group-q1", "master-sql-cascade-q2",
+    "master-db-design-q1", "master-denormalization-q1", "master-isms-q2",
+    "master-session-hijacking-q1", "master-error-detection-q1", "master-raid-q2",
+    "master-stub-driver-q1", "master-pattern-bridge-observer-q2", "master-ajax-q1",
+    "master-package-diagram-q1", "master-cloud-models-q2",
+  ],
+  C: [
+    "exam-c-function-pointer-3", "exam-c-sort-rank-1", "exam-c-struct-string-2",
+    "exam-java-field-binding-2", "exam-java-switch-1", "exam-java-overload-3",
+    "exam-py-default-args-1", "master-sql-group-q2", "master-sql-cascade-q2",
+    "master-relation-basics-q2", "master-join-types-q1", "master-isms-q1",
+    "master-sso-q2", "master-hdlc-q1", "master-raid-q1", "master-stub-driver-q1",
+    "master-pattern-bridge-observer-q2", "master-web-basics-q1", "master-nui-q1",
+    "master-config-tools-q2",
+  ],
+  D: [
+    "exam-c-operator-flow-1", "exam-c-linked-list-2", "exam-c-function-pointer-1",
+    "exam-java-interface-1", "exam-java-reference-object-1", "exam-java-interface-3",
+    "exam-py-slicing-1", "master-foreign-key-ddl-q2", "exam-sql-precedence-2",
+    "master-integrity-q2", "master-erd-symbols-q2", "master-isms-q1",
+    "master-scareware-q2", "master-error-detection-q2", "master-raid-q1",
+    "master-stub-driver-q2", "master-pattern-bridge-observer-q1", "master-ajax-q2",
+    "master-nui-q2", "master-nonfunctional-q2",
+  ],
+  E: [
+    "exam-c-operator-flow-1", "exam-c-char-array-1", "exam-c-number-loops-2",
+    "exam-java-overload-3", "exam-java-reference-object-2", "exam-java-constructor-3",
+    "exam-py-dict-2", "master-sql-group-q1", "exam-sql-set-ops-2",
+    "master-recovery-q1", "master-join-types-q2", "master-isms-q2", "master-siem-q1",
+    "master-subnet-q2", "master-raid-q2", "master-stub-driver-q2",
+    "master-pattern-bridge-observer-q1", "master-ajax-q2", "master-package-diagram-q2",
+    "master-cloud-models-q2",
+  ],
+});
 const REVIEW_INTERVALS_MS = [
   10 * 60 * 1000,
   24 * 60 * 60 * 1000,
@@ -783,6 +831,7 @@ function emptyState() {
     checks: {},
     log: [],
     mockBest: null,
+    mockBestFormVersion: STANDARD_MOCK_FORM_VERSION,
     mastery: {},
     mockDraft: null,
     mockHistory: [],
@@ -798,7 +847,12 @@ function practiceItemMap() {
 }
 
 function normalizeMockMode(mode) {
-  if (mode === "standard" || mode === "weakness" || mode === "legacy") return mode;
+  if (
+    mode === "standard" ||
+    mode === "weakness" ||
+    mode === "legacy" ||
+    mode === "legacy-standard"
+  ) return mode;
   return "legacy";
 }
 
@@ -808,6 +862,20 @@ function selectableMockMode(mode) {
 
 function normalizeMockForm(form) {
   return STANDARD_MOCK_FORMS.includes(form) ? form : null;
+}
+
+function normalizeMockSeries(modeValue, formValue, formVersionValue) {
+  let mode = normalizeMockMode(modeValue);
+  const form = mode === "standard" ? normalizeMockForm(formValue) : null;
+  if (mode === "standard" && !form) mode = "legacy-standard";
+  const parsedVersion = Math.trunc(Number(formVersionValue) || 0);
+  return {
+    mode,
+    form: mode === "standard" ? form : null,
+    formVersion: mode === "standard"
+      ? parsedVersion > 0 ? parsedVersion : STANDARD_MOCK_FORM_VERSION
+      : null,
+  };
 }
 
 function normalizeMockDraft(value) {
@@ -833,12 +901,11 @@ function normalizeMockDraft(value) {
     if (isRecord(value.flags) && value.flags[id] === true) flags[id] = true;
   });
 
-  const mode = normalizeMockMode(value.mode);
+  const series = normalizeMockSeries(value.mode, value.form, value.formVersion);
   return {
     version: 1,
     id: typeof value.id === "string" ? value.id.slice(0, 80) : `mock-${startedAt}`,
-    mode,
-    form: mode === "standard" ? normalizeMockForm(value.form) : null,
+    ...series,
     itemIds,
     index: Math.min(Math.max(Math.trunc(Number(value.index) || 0), 0), itemIds.length - 1),
     answers,
@@ -948,11 +1015,10 @@ function normalizeState(value) {
                 maxPoints: 5,
               }))
           : [];
-        const mode = normalizeMockMode(entry.mode);
+        const series = normalizeMockSeries(entry.mode, entry.form, entry.formVersion);
         return {
           id: String(entry.id || "").slice(0, 80),
-          mode,
-          form: mode === "standard" ? normalizeMockForm(entry.form) : null,
+          ...series,
           completedAt: Number.isFinite(entry.completedAt) ? entry.completedAt : 0,
           strictScore: Math.min(Math.max(Number(entry.strictScore) || 0, 0), 100),
           learningScore: Math.min(Math.max(Number(entry.learningScore) || 0, 0), 100),
@@ -962,13 +1028,22 @@ function normalizeState(value) {
       });
   }
   const standardHistoryScores = result.mockHistory
-    .filter((entry) => entry.mode === "standard")
+    .filter(
+      (entry) =>
+        entry.mode === "standard" &&
+        entry.form &&
+        entry.formVersion === STANDARD_MOCK_FORM_VERSION,
+    )
     .map((entry) => entry.strictScore);
-  result.mockBest = sourceVersion >= STATE_VERSION
+  const savedBestMatchesCurrentForm =
+    sourceVersion >= STATE_VERSION &&
+    Number(source.mockBestFormVersion) === STANDARD_MOCK_FORM_VERSION;
+  result.mockBest = savedBestMatchesCurrentForm
     ? normalizedSavedMockBest
     : standardHistoryScores.length
       ? Math.max(...standardHistoryScores)
       : null;
+  result.mockBestFormVersion = STANDARD_MOCK_FORM_VERSION;
   return result;
 }
 
@@ -1069,6 +1144,7 @@ function answerRule(item) {
     numeric: "숫자형: 부호와 소수점을 포함해 정답 숫자를 정확히 쓴다.",
     output: "출력형: 부호, 소수점, 기호와 출력 순서를 정확히 쓴다.",
     literal: "코드문법형: 대소문자와 괄호·꺾쇠·연산자를 정답 그대로 쓴다.",
+    "sql-literal": "SQL문법형: 예약어 대소문자는 자유지만 괄호와 따옴표 속 값은 정확히 쓴다.",
     ordered: "순서형: 모든 답을 문제에서 요구한 순서대로 쓴다.",
     set: "복수답형: 필요한 항목을 모두 쓰며 항목 순서는 상관없다.",
     partitioned: "분류형: 각 묶음 안의 답을 모두 쓰고 묶음 사이는 / 로 구분한다.",
@@ -1206,7 +1282,17 @@ function formatMockDate(timestamp) {
 function mockModeLabel(mode, form = null) {
   if (mode === "weakness") return "약점 집중";
   if (mode === "legacy") return "이전 방식";
+  if (mode === "legacy-standard") return "이전 표준(무작위)";
   return form ? `실전 표준 ${form}형` : "실전 표준";
+}
+
+function sameMockSeries(candidate, reference) {
+  if (candidate.mode !== reference.mode) return false;
+  if (reference.mode !== "standard") return true;
+  return (
+    candidate.form === reference.form &&
+    candidate.formVersion === reference.formVersion
+  );
 }
 
 function hydrateMockHistoryResults(entry) {
@@ -1254,11 +1340,7 @@ function renderMockHistoryDetail(historyId) {
   const previous = state.mockHistory
     .slice(0, entryIndex)
     .reverse()
-    .find(
-      (candidate) =>
-        candidate.mode === entry.mode &&
-        (entry.mode !== "standard" || candidate.form === entry.form),
-    );
+    .find((candidate) => sameMockSeries(candidate, entry));
   const delta = previous ? entry.strictScore - previous.strictScore : null;
   const results = hydrateMockHistoryResults(entry);
   const domains = analyzeMockDomains(results);
@@ -1321,7 +1403,7 @@ function renderMockHistory() {
   const previous = [...history]
     .slice(0, -1)
     .reverse()
-    .find((entry) => entry.mode === latest.mode);
+    .find((entry) => sameMockSeries(entry, latest));
   const latestDelta = previous ? latest.strictScore - previous.strictScore : null;
   trend.textContent = latestDelta === null
     ? `최근 ${latest.strictScore}점`
@@ -1334,7 +1416,7 @@ function renderMockHistory() {
       const before = history
         .slice(0, originalIndex)
         .reverse()
-        .find((candidate) => candidate.mode === entry.mode);
+        .find((candidate) => sameMockSeries(candidate, entry));
       const delta = before ? entry.strictScore - before.strictScore : null;
       return `
         <button type="button" class="mock-history-row" data-history-id="${escapeHtml(entry.id)}">
@@ -1924,64 +2006,13 @@ function renderRoutine() {
     .join("");
 }
 
-function stableFormRank(value) {
-  let hash = 2166136261;
-  for (const character of value) {
-    hash ^= character.codePointAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
 function buildStandardMockForm(form, examPool = poolByMode("exam")) {
   const safeForm = normalizeMockForm(form) || "A";
-  const picked = [];
-  const draw = (key, predicate) => {
-    const candidates = examPool
-      .filter(
-        (item) =>
-          !picked.some((candidate) => candidate.id === item.id) && predicate(item),
-      )
-      .sort(
-        (left, right) =>
-          stableFormRank(`${safeForm}:${key}:${left.id}`) -
-            stableFormRank(`${safeForm}:${key}:${right.id}`) ||
-          left.id.localeCompare(right.id),
-      );
-    if (!candidates.length) throw new Error(`표준 ${safeForm}형의 ${key} 문항이 부족합니다.`);
-    picked.push(candidates[0]);
-  };
-
-  [["C", 3], ["Java", 3], ["Python", 1]].forEach(([language, count]) => {
-    for (let index = 0; index < count; index += 1) {
-      draw(`code-${language}-${index}`, (item) =>
-        item.type === "code" && item.tags.includes(language),
-      );
-    }
-  });
-  draw("sql-must", (item) => item.type === "sql" && item.level === "must");
-  draw("sql-high", (item) => item.type === "sql" && item.level === "high");
-  draw("db-must", (item) => item.type === "db" && item.level === "must");
-  draw("db-high", (item) => item.type === "db" && item.level === "high");
-
-  draw("security-must", (item) => item.type === "security" && item.level === "must");
-  draw("security-high", (item) => item.type === "security" && item.level === "high");
-  draw("network-must", (item) => item.domain === "네트워크" && item.level === "must");
-  draw("os-must", (item) => item.domain === "OS" && item.level === "must");
-  draw("test-must", (item) => item.domain === "테스트/품질" && item.level === "must");
-  draw("design-must", (item) => item.domain === "설계/패턴" && item.level === "must");
-  draw("api-high", (item) => item.domain === "연계/API" && item.level === "high");
-  draw("ui-high", (item) => item.domain === "UI/UML" && item.level === "high");
-  const rotatingDomains = {
-    A: "요구사항",
-    B: "신기술",
-    C: "형상/배포",
-    D: "요구사항",
-    E: "신기술",
-  };
-  draw("rotating-high", (item) =>
-    item.domain === rotatingDomains[safeForm] && item.level === "high",
-  );
+  const knownItems = new Map(examPool.map((item) => [item.id, item]));
+  const picked = STANDARD_MOCK_FORM_IDS[safeForm].map((id) => knownItems.get(id));
+  if (picked.some((item) => !item)) {
+    throw new Error(`표준 ${safeForm}형에 문제은행에서 찾을 수 없는 문항이 있습니다.`);
+  }
   return picked;
 }
 
@@ -2014,6 +2045,7 @@ function startMock() {
     id: `mock-${startedAt}`,
     mode: selectedMockMode,
     form: selectedMockMode === "standard" ? selectedMockForm : null,
+    formVersion: selectedMockMode === "standard" ? STANDARD_MOCK_FORM_VERSION : null,
     itemIds: picked.map((item) => item.id),
     index: 0,
     answers: {},
@@ -2034,6 +2066,7 @@ function serializeMockSession(session) {
     id: session.id,
     mode: session.mode,
     form: session.form,
+    formVersion: session.formVersion,
     itemIds: session.itemIds,
     index: session.index,
     answers: session.answers,
@@ -2119,7 +2152,10 @@ function syncMockModeButtons() {
     button.disabled = Boolean(mockSession);
   });
   const formSelector = document.getElementById("mockFormSelector");
-  if (formSelector) formSelector.hidden = selectedMockMode !== "standard";
+  const showStandardForms =
+    selectedMockMode === "standard" &&
+    (!mockSession || mockSession.mode === "standard");
+  if (formSelector) formSelector.hidden = !showStandardForms;
   document.querySelectorAll(".mock-form").forEach((button) => {
     const active = button.dataset.mockForm === selectedMockForm;
     button.classList.toggle("active", active);
@@ -2250,6 +2286,7 @@ function finishMock({ timedOut = false, skipConfirm = false } = {}) {
     id: session.id,
     mode: session.mode,
     form: session.form,
+    formVersion: session.formVersion,
     completedAt: Date.now(),
     strictScore,
     learningScore,
@@ -2258,11 +2295,13 @@ function finishMock({ timedOut = false, skipConfirm = false } = {}) {
   };
   if (session.mode === "standard") {
     state.mockBest = state.mockBest === null ? strictScore : Math.max(state.mockBest, strictScore);
+    state.mockBestFormVersion = STANDARD_MOCK_FORM_VERSION;
   }
   state.mockHistory.push({
     id: completed.id,
     mode: completed.mode,
     form: completed.form,
+    formVersion: completed.formVersion,
     completedAt: completed.completedAt,
     strictScore,
     learningScore,
@@ -2505,6 +2544,7 @@ function bindEvents() {
     lastMockResult = null;
     selectedMockHistoryId = null;
     selectedMockMode = "standard";
+    selectedMockForm = "A";
     saveState();
     renderDayPlan();
     renderQuestion();
@@ -2570,6 +2610,7 @@ window.JEONGCHEOGI_AUDIT = Object.freeze({
   masteryTransition,
   normalizeImportedState,
   normalizeMockMode,
+  sameMockSeries,
   normalizeMockDraft,
   normalizeState,
   readStateFromStorage,

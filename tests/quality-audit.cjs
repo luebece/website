@@ -279,6 +279,15 @@ for (const id of ["master-crypto-q1", "master-crypto-q2"]) {
   assert.ok(engine.matches("SEED, AES, DES, ARIA / ECC, RSA", crypto));
   assert.ok(!engine.matches("AES, DES, ARIA, SEED, RSA, ECC", crypto));
   assert.ok(!engine.matches("AES, RSA, DES, ECC / ARIA, SEED", crypto));
+  assert.ok(
+    engine.score("AES, DES, ARIA, SEED, RSA, ECC", crypto, 5).points < 5,
+    `${id}: unpartitioned answer received full learning credit`,
+  );
+  assert.ok(
+    engine.score("RSA, ECC / AES, DES, ARIA, SEED", crypto, 5).points < 5,
+    `${id}: reversed partitions received full learning credit`,
+  );
+  assert.equal(engine.score("AES, DES / RSA", crypto, 5).points, 2.5);
 }
 
 const literalItems = items.filter((item) => engine.answerMode(item) === "literal");
@@ -297,6 +306,22 @@ assert.ok(!engine.matches("ListInteger", genericLiteral));
 assert.ok(!engine.matches("Integer", genericLiteral));
 const itemsLiteral = literalItems.find((item) => item.id === "gm-py-009");
 assert.ok(!engine.matches("items", itemsLiteral));
+assert.ok(engine.matches("d.items()", itemsLiteral));
+assert.ok(engine.matches("append()", items.find((item) => item.id === "code-015")));
+assert.ok(engine.matches("extend()", items.find((item) => item.id === "gm-py-006")));
+
+const sqlLiteralItems = items.filter((item) => engine.answerMode(item) === "sql-literal");
+assert.equal(sqlLiteralItems.length, 4, "unexpected SQL literal item count");
+for (const item of sqlLiteralItems) {
+  if (item.id === "cq-sql-012") continue;
+  assert.ok(engine.matches(item.answer.toLowerCase(), item), `${item.id}: lowercase SQL rejected`);
+}
+const likeLiteral = sqlLiteralItems.find((item) => item.id === "cq-sql-012");
+assert.ok(engine.matches("like 'A%'", likeLiteral));
+assert.ok(!engine.matches("like 'a%'", likeLiteral), "SQL string literal case was ignored");
+const distinctLiteral = sqlLiteralItems.find((item) => item.id === "db-002");
+assert.ok(engine.matches("count ( distinct dept )", distinctLiteral));
+assert.ok(!engine.matches("count distinct dept", distinctLiteral));
 
 const distinct = items.find((item) =>
   [...(item.accept || []), item.answer].some((value) =>
@@ -464,6 +489,18 @@ for (const form of ["A", "B", "C", "D", "E"]) {
   standardFormSignatures.add(selected.map((item) => item.id).join("|"));
 }
 assert.equal(standardFormSignatures.size, 5, "standard forms are not distinct");
+assert.ok(audit.sameMockSeries(
+  { mode: "standard", form: "A", formVersion: 1 },
+  { mode: "standard", form: "A", formVersion: 1 },
+));
+assert.ok(!audit.sameMockSeries(
+  { mode: "standard", form: "A", formVersion: 1 },
+  { mode: "standard", form: "B", formVersion: 1 },
+));
+assert.ok(!audit.sameMockSeries(
+  { mode: "standard", form: "A", formVersion: 1 },
+  { mode: "standard", form: "A", formVersion: 2 },
+));
 
 const undefinedIncrement = audit.practice.filter((item) =>
   /x\+\+\s*\+\s*\+\+x|\+\+x\s*\+\s*x\+\+/.test(item.question),
@@ -535,7 +572,7 @@ const migratedLegacyState = audit.normalizeState({
     results: [],
   }],
 });
-assert.equal(migratedLegacyState.version, 3);
+assert.equal(migratedLegacyState.version, 4);
 assert.equal(migratedLegacyState.mockDraft.mode, "legacy");
 assert.equal(migratedLegacyState.mockHistory[0].mode, "legacy");
 assert.equal(migratedLegacyState.mockBest, null, "legacy score became a standard best");
@@ -549,13 +586,47 @@ const migratedMixedState = audit.normalizeState({
     { id: "weakness", mode: "weakness", strictScore: 90 },
   ],
 });
-assert.equal(migratedMixedState.mockBest, 75, "v2 best was not rebuilt from standard history");
+assert.equal(migratedMixedState.mockHistory[1].mode, "legacy-standard");
+assert.equal(migratedMixedState.mockBest, null, "random standard score leaked into fixed-form best");
 assert.equal(audit.normalizeMockMode("unknown"), "legacy");
 
-const currentStateBest = audit.normalizeState({
+const migratedV3RandomState = audit.normalizeState({
+  version: 3,
+  mockBest: 88,
+  mockDraft: {
+    id: "v3-random-draft",
+    mode: "standard",
+    itemIds: [firstItemId],
+    startedAt: transitionNow,
+    deadline: transitionNow + 150 * 60 * 1000,
+  },
+  mockHistory: [{ id: "v3-random", mode: "standard", strictScore: 88 }],
+});
+assert.equal(migratedV3RandomState.mockDraft.mode, "legacy-standard");
+assert.equal(migratedV3RandomState.mockDraft.form, null);
+assert.equal(migratedV3RandomState.mockHistory[0].mode, "legacy-standard");
+assert.equal(migratedV3RandomState.mockBest, null);
+
+const migratedV3FixedState = audit.normalizeState({
   version: 3,
   mockBest: 95,
-  mockHistory: [{ id: "recent-standard", mode: "standard", strictScore: 75 }],
+  mockHistory: [{ id: "v3-fixed", mode: "standard", form: "A", strictScore: 75 }],
+});
+assert.equal(migratedV3FixedState.mockHistory[0].mode, "standard");
+assert.equal(migratedV3FixedState.mockHistory[0].formVersion, 1);
+assert.equal(migratedV3FixedState.mockBest, 75);
+
+const currentStateBest = audit.normalizeState({
+  version: 4,
+  mockBest: 95,
+  mockBestFormVersion: 1,
+  mockHistory: [{
+    id: "recent-standard",
+    mode: "standard",
+    form: "A",
+    formVersion: 1,
+    strictScore: 75,
+  }],
 });
 assert.equal(currentStateBest.mockBest, 95, "current all-time standard best was discarded");
 
@@ -566,7 +637,7 @@ backupState.wrong[secondItemId] = 2;
 backupState.mockDraft = normalizedDraft;
 const backup = audit.createExportPayload(backupState);
 assert.equal(backup.app, "jeongcheogi-trainer");
-assert.equal(backup.version, 3);
+assert.equal(backup.version, 4);
 const imported = audit.normalizeImportedState(backup);
 assert.equal(imported.day, 4);
 assert.equal(imported.done[firstItemId], true);
@@ -603,12 +674,12 @@ const assetRefs = [
   ),
 ];
 for (const ref of assetRefs) {
-  assert.ok(ref.endsWith("?v=17"), `unversioned executable asset: ${ref}`);
+  assert.ok(ref.endsWith("?v=18"), `unversioned executable asset: ${ref}`);
   assert.ok(fs.existsSync(ref.split("?")[0]), `missing executable asset: ${ref}`);
   assert.ok(serviceWorker.includes(`"./${ref}"`), `service worker does not cache: ${ref}`);
 }
 assert.ok(
-  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v17"'),
+  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v18"'),
   "service worker cache version mismatch",
 );
 for (const id of [

@@ -30,6 +30,45 @@
     return String(value ?? "").normalize("NFKC").trim();
   }
 
+  function normalizeSqlLiteral(value) {
+    const input = String(value ?? "").normalize("NFKC").trim();
+    let output = "";
+    let quote = null;
+    let pendingSpace = false;
+    for (let index = 0; index < input.length; index += 1) {
+      const character = input[index];
+      if (quote) {
+        output += character;
+        if (character === quote) {
+          if (input[index + 1] === quote) {
+            output += input[index + 1];
+            index += 1;
+          } else {
+            quote = null;
+          }
+        }
+        continue;
+      }
+      if (character === "'" || character === '"') {
+        if (pendingSpace && output && !output.endsWith("(")) output += " ";
+        output += character;
+        quote = character;
+        pendingSpace = false;
+      } else if (/\s/.test(character)) {
+        pendingSpace = true;
+      } else if (/[(),*]/.test(character)) {
+        output = output.replace(/\s+$/, "");
+        output += character;
+        pendingSpace = false;
+      } else {
+        if (pendingSpace && output && !output.endsWith("(")) output += " ";
+        output += character.toLowerCase();
+        pendingSpace = false;
+      }
+    }
+    return output.trim();
+  }
+
   function unique(values) {
     return [...new Set(values.filter(Boolean))];
   }
@@ -98,13 +137,17 @@
     });
   }
 
-  function matchesPartitions(rawUser, item) {
-    const partitions = partitionGroupLists(item);
-    const segments = String(rawUser)
+  function splitPartitionSegments(rawUser) {
+    return String(rawUser)
       .normalize("NFKC")
       .split(/\s*(?:\/|\||;|\n)\s*/)
       .map((segment) => compactTerm(segment))
       .filter(Boolean);
+  }
+
+  function matchesPartitions(rawUser, item) {
+    const partitions = partitionGroupLists(item);
+    const segments = splitPartitionSegments(rawUser);
     if (!partitions.length || segments.length !== partitions.length) return false;
     return partitions.every(
       (lists, index) =>
@@ -112,6 +155,16 @@
         lists.every((list) => list.length) &&
         consumeSet(segments[index], lists, 0, new Map()),
     );
+  }
+
+  function countPartitionMatches(rawUser, item) {
+    const partitions = partitionGroupLists(item);
+    const segments = splitPartitionSegments(rawUser);
+    if (!partitions.length || segments.length !== partitions.length) return 0;
+    return partitions.reduce((total, lists, index) => {
+      const matched = consumeSetPartial(segments[index], lists, 0, new Map());
+      return total + Math.max(0, matched);
+    }, 0);
   }
 
   function consumeOrdered(remaining, lists, index, memo) {
@@ -247,6 +300,14 @@
       return { correct, mode, reason: correct ? "exact-literal" : "literal-mismatch" };
     }
 
+    if (mode === "sql-literal") {
+      const normalizedUser = normalizeSqlLiteral(rawUser);
+      const correct = flatCandidates(item).some(
+        (candidate) => normalizeSqlLiteral(candidate) === normalizedUser,
+      );
+      return { correct, mode, reason: correct ? "exact-sql-literal" : "sql-literal-mismatch" };
+    }
+
     if (mode === "partitioned") {
       const correct = matchesPartitions(rawUser, item);
       return { correct, mode, reason: correct ? "partitioned-match" : "partitioned-mismatch" };
@@ -308,6 +369,18 @@
       };
     }
 
+    if (result.mode === "partitioned") {
+      const matchedGroups = countPartitionMatches(user, item);
+      const points = Math.round(((maximum * matchedGroups) / totalGroups) * 2) / 2;
+      return {
+        ...result,
+        points,
+        maxPoints: maximum,
+        matchedGroups,
+        totalGroups,
+      };
+    }
+
     const normalizedUser = compactTerm(user);
     const lists = groupCandidates(item);
     if (!normalizedUser || !lists.length || lists.some((list) => !list.length) || lists.length > 20) {
@@ -342,6 +415,7 @@
     matches: (user, item) => evaluate(user, item).correct,
     normalizeLiteral,
     normalizeOutput,
+    normalizeSqlLiteral,
     numericPattern: NUMERIC_PATTERN,
     score,
   });

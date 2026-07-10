@@ -295,7 +295,7 @@
     ["cq-py-015", "Python", "code", "mid", "Python 출력값은?\nprint(bool([0]))", ["True", "true", "참"], "True", "원소가 있는 리스트는 True다.", ["Python", "bool"]],
 
     ["cq-sql-001", "SQL", "sql", "must", "SQL 처리 순서를 FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY 기준으로 쓰면?", [["from"], ["where"], ["groupby", "group by"], ["having"], ["select"], ["orderby", "order by"]], "FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY", "겉보기와 실제 처리 순서는 다르다.", ["SQL", "실행순서"]],
-    ["cq-sql-002", "SQL", "sql", "must", "COUNT(*)와 COUNT(score) 중 NULL score 행도 세는 것은?", ["count(*)"], "COUNT(*)", "COUNT(컬럼)은 NULL을 세지 않는다.", ["SQL", "집계"]],
+    ["cq-sql-002", "SQL", "sql", "must", "COUNT(*)와 COUNT(score) 중 NULL score 행도 세는 것은?", ["COUNT(*)"], "COUNT(*)", "COUNT(컬럼)은 NULL을 세지 않는다.", ["SQL", "집계"], { answerMode: "sql-literal" }],
     ["cq-sql-003", "SQL", "sql", "must", "SELECT 결과를 내림차순으로 정렬할 때 쓰는 키워드는?", ["desc"], "DESC", "ASC는 오름차순, DESC는 내림차순이다.", ["SQL", "ORDER BY"]],
     ["cq-sql-004", "SQL", "sql", "high", "조건에 따라 PASS/FAIL 같은 값을 출력할 때 쓰는 SQL 표현은?", ["case", "casewhen", "case when"], "CASE WHEN", "CASE WHEN 조건 THEN 값 ELSE 값 END 형태다.", ["SQL", "CASE"]],
     ["cq-sql-005", "SQL", "sql", "high", "테이블이나 컬럼에 임시 이름을 붙이는 SQL 키워드는?", ["as"], "AS", "SELECT name AS 이름 형태로 쓴다.", ["SQL", "별칭"]],
@@ -305,7 +305,7 @@
     ["cq-sql-009", "SQL", "sql", "mid", "두 SELECT 결과의 공통 행만 남기는 집합 연산자는?", ["intersect"], "INTERSECT", "교집합이다.", ["SQL", "집합연산"]],
     ["cq-sql-010", "SQL", "sql", "mid", "앞 SELECT 결과에서 뒤 SELECT 결과를 빼는 집합 연산자는?", ["minus", "except"], "MINUS", "차집합이다. DBMS에 따라 EXCEPT라고도 한다.", ["SQL", "집합연산"]],
     ["cq-sql-011", "SQL", "sql", "mid", "컬럼 값이 NULL이 아닌 행을 찾는 조건은?", ["isnotnull", "is not null"], "IS NOT NULL", "NULL 비교는 IS NULL 또는 IS NOT NULL을 쓴다.", ["SQL", "NULL"]],
-    ["cq-sql-012", "SQL", "sql", "mid", "문자열이 A로 시작하는 값을 찾는 LIKE 조건은?", ["like'a%'", "a%", "likea%"], "LIKE 'A%'", "%는 여러 글자를 뜻한다.", ["SQL", "LIKE"]],
+    ["cq-sql-012", "SQL", "sql", "mid", "문자열이 A로 시작하는 값을 찾는 LIKE 조건은?", ["LIKE 'A%'"], "LIKE 'A%'", "%는 여러 글자를 뜻한다.", ["SQL", "LIKE"], { answerMode: "sql-literal" }],
     ["cq-sql-013", "SQL", "sql", "mid", "기본키가 지켜야 하는 대표 조건 두 가지는?", [["중복 불가", "중복 금지", "unique", "유일"], ["NULL 불가", "NULL 금지", "NOT NULL", "널 불가"]], "중복 불가, NULL 불가", "기본키는 행을 유일하게 식별해야 한다.", ["SQL", "키"]],
     ["cq-sql-014", "SQL", "sql", "mid", "테이블 구조를 바꾸는 DDL 명령어는?", ["alter"], "ALTER", "ALTER TABLE로 컬럼 추가나 변경을 한다.", ["SQL", "DDL"]],
     ["cq-sql-015", "SQL", "sql", "mid", "사용자에게 권한을 주는 SQL 명령어는?", ["grant"], "GRANT", "권한 부여는 GRANT다.", ["SQL", "DCL"]],
