@@ -26,6 +26,10 @@
       .trim();
   }
 
+  function normalizeLiteral(value) {
+    return String(value ?? "").normalize("NFKC").trim();
+  }
+
   function unique(values) {
     return [...new Set(values.filter(Boolean))];
   }
@@ -73,6 +77,40 @@
     const canonical = splitCanonical(item.answer, groups.length);
     return groups.map((group, index) =>
       unique([...(group || []), canonical[index]].map(compactTerm)),
+    );
+  }
+
+  function partitionGroupLists(item) {
+    const sizes = item.partitionSizes || [];
+    const lists = groupCandidates(item);
+    if (
+      !sizes.length ||
+      sizes.some((size) => !Number.isInteger(size) || size < 1) ||
+      sizes.reduce((sum, size) => sum + size, 0) !== lists.length
+    ) {
+      return [];
+    }
+    let offset = 0;
+    return sizes.map((size) => {
+      const partition = lists.slice(offset, offset + size);
+      offset += size;
+      return partition;
+    });
+  }
+
+  function matchesPartitions(rawUser, item) {
+    const partitions = partitionGroupLists(item);
+    const segments = String(rawUser)
+      .normalize("NFKC")
+      .split(/\s*(?:\/|\||;|\n)\s*/)
+      .map((segment) => compactTerm(segment))
+      .filter(Boolean);
+    if (!partitions.length || segments.length !== partitions.length) return false;
+    return partitions.every(
+      (lists, index) =>
+        lists.length &&
+        lists.every((list) => list.length) &&
+        consumeSet(segments[index], lists, 0, new Map()),
     );
   }
 
@@ -201,6 +239,19 @@
       return { correct, mode, reason: correct ? "exact-output" : "output-mismatch" };
     }
 
+    if (mode === "literal") {
+      const normalizedUser = normalizeLiteral(rawUser);
+      const correct = flatCandidates(item).some(
+        (candidate) => normalizeLiteral(candidate) === normalizedUser,
+      );
+      return { correct, mode, reason: correct ? "exact-literal" : "literal-mismatch" };
+    }
+
+    if (mode === "partitioned") {
+      const correct = matchesPartitions(rawUser, item);
+      return { correct, mode, reason: correct ? "partitioned-match" : "partitioned-mismatch" };
+    }
+
     const normalizedUser = compactTerm(rawUser);
     if (!normalizedUser) return { correct: false, mode, reason: "empty" };
 
@@ -289,6 +340,7 @@
     compactTerm,
     evaluate,
     matches: (user, item) => evaluate(user, item).correct,
+    normalizeLiteral,
     normalizeOutput,
     numericPattern: NUMERIC_PATTERN,
     score,

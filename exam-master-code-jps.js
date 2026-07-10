@@ -18,6 +18,7 @@
         question.answer,
         question.explain,
         [domain, title, "기출급", "skill:" + id, ...(question.tags || [])],
+        { answerMode: question.answerMode },
       ]);
     });
     skills[id] = { id, title, domain, kind: "code", lessonId: "academy-" + domain, practiceIds };
@@ -49,6 +50,7 @@
       question: "빈칸에 들어갈 Java 키워드를 쓰시오.\n\ninterface Machine { void run(); }\nclass Washer ____ Machine {\n  public void run() { }\n}",
       accept: ["implements"],
       answer: "implements",
+      answerMode: "literal",
       explain: "클래스가 인터페이스를 구현할 때 implements를 쓴다.",
     },
     {
@@ -157,6 +159,7 @@
       question: "빈칸에 들어갈 Java 키워드를 쓰시오.\n\nclass A { A(int n){} }\nclass B extends A { B(){ ____(3); } }",
       accept: ["super"],
       answer: "super",
+      answerMode: "literal",
       explain: "부모 생성자를 명시적으로 호출할 때 super(...)를 쓴다.",
     },
   ]);
@@ -280,6 +283,7 @@
       question: "빈칸에 공통으로 들어갈 Java 키워드를 쓰시오.\n\n____ class Shape {\n  ____ int area();\n}",
       accept: ["abstract"],
       answer: "abstract",
+      answerMode: "literal",
       explain: "추상 클래스와 구현 없는 추상 메서드에 abstract를 쓴다.",
     },
   ]);

@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="styles.css?v=16" />
+    <link rel="stylesheet" href="styles.css?v=17" />
   </head>
   <body>
     <header class="app-header">
@@ -353,6 +353,13 @@
                   <button class="mock-mode active" data-mock-mode="standard" type="button" aria-pressed="true">실전 표준</button>
                   <button class="mock-mode" data-mock-mode="weakness" type="button" aria-pressed="false">약점 집중</button>
                 </div>
+                <div id="mockFormSelector" class="segmented mock-form-selector" role="group" aria-label="실전 표준 시험지">
+                  <button class="mock-form active" data-mock-form="A" type="button" aria-pressed="true" title="A형 시험지">A</button>
+                  <button class="mock-form" data-mock-form="B" type="button" aria-pressed="false" title="B형 시험지">B</button>
+                  <button class="mock-form" data-mock-form="C" type="button" aria-pressed="false" title="C형 시험지">C</button>
+                  <button class="mock-form" data-mock-form="D" type="button" aria-pressed="false" title="D형 시험지">D</button>
+                  <button class="mock-form" data-mock-form="E" type="button" aria-pressed="false" title="E형 시험지">E</button>
+                </div>
                 <button id="startMock" type="button" class="primary-button">새 시험 시작</button>
               </div>
             </div>
@@ -365,7 +372,7 @@
             <ul class="plain-list">
               <li>Q-Net 기준 실제 시험은 필답형 2시간 30분이며 60점 이상 합격이다.</li>
               <li>이 화면의 점수는 앱 문제은행 학습 점수이며 실제 시험 점수 예측값이 아니다.</li>
-              <li>실전 표준은 코드 7·SQL/DB 4·이론 9문항을 균등 추출해 회차 비교에 사용한다.</li>
+              <li>실전 표준 A~E형은 언어·분야·난이도 비율이 같고, 같은 형은 항상 같은 문항이라 점수 비교에 사용한다.</li>
               <li>약점 집중은 오답·필수·복습 예정 문항의 출제 확률을 높여 취약 영역을 보강한다.</li>
               <li>문항을 자유롭게 이동하고 재검토 표시를 남길 수 있으며, 답은 기기에 자동 저장된다.</li>
               <li>부분답 문항도 엄격 채점은 핵심 키워드를 모두 써야 정답이다. 부분점수는 학습 상태 확인용이다.</li>
@@ -399,19 +406,19 @@
       </section>
     </main>
 
-    <script src="theory-deep.js?v=16"></script>
-    <script src="theory-mega.js?v=16"></script>
-    <script src="code-sql-mastery.js?v=16"></script>
-    <script src="code-sql-conquest.js?v=16"></script>
-    <script src="code-sql-grandmaster.js?v=16"></script>
-    <script src="code-java-generics.js?v=16"></script>
-    <script src="exam-master-theory.js?v=16"></script>
-    <script src="exam-master-code-c.js?v=16"></script>
-    <script src="exam-master-code-jps.js?v=16"></script>
-    <script src="exam-master-academy.js?v=16"></script>
-    <script src="exam-coverage.js?v=16"></script>
-    <script src="answer-engine.js?v=16"></script>
-    <script src="app.js?v=16"></script>
-    <script src="pwa.js?v=16"></script>
+    <script src="theory-deep.js?v=17"></script>
+    <script src="theory-mega.js?v=17"></script>
+    <script src="code-sql-mastery.js?v=17"></script>
+    <script src="code-sql-conquest.js?v=17"></script>
+    <script src="code-sql-grandmaster.js?v=17"></script>
+    <script src="code-java-generics.js?v=17"></script>
+    <script src="exam-master-theory.js?v=17"></script>
+    <script src="exam-master-code-c.js?v=17"></script>
+    <script src="exam-master-code-jps.js?v=17"></script>
+    <script src="exam-master-academy.js?v=17"></script>
+    <script src="exam-coverage.js?v=17"></script>
+    <script src="answer-engine.js?v=17"></script>
+    <script src="app.js?v=17"></script>
+    <script src="pwa.js?v=17"></script>
   </body>
 </html>

@@ -24,6 +24,8 @@
       example,
       clues,
       aliases = [],
+      answerMode,
+      partitionSizes = [],
       rounds = "22-1~26-1",
       tags = [],
     } = row;
@@ -66,6 +68,7 @@
         answer,
         `${oneLine} 외우는 법: ${memorize} 예: ${example}`,
         [domain, title, "기출급", `skill:${id}`, ...tags],
+        { answerMode, partitionSizes },
       ]);
     });
   }
@@ -237,6 +240,7 @@
       example: "ERD는 개념적 설계, 테이블 정의는 논리적 설계에서 주로 한다.",
       clues: ["데이터베이스 설계의 다섯 단계를 처음부터 끝까지 순서대로 쓰시오.", "요구를 수집한 뒤 개념 모델, 논리 모델, 저장 구조를 정하고 실제 DB를 만드는 절차를 쓰시오."],
       aliases: ["요개논물구"],
+      answerMode: "ordered",
       rounds: "23-2, 26-1",
     },
     {
@@ -356,7 +360,10 @@
       domain: "SQL",
       title: "COUNT와 NULL",
       answer: "COUNT(컬럼)은 NULL 제외, COUNT(*)는 행 전체",
-      accept: [["count", "컬럼"], ["null", "제외"], ["count", "행", "전체"]],
+      accept: [
+        ["COUNT(컬럼)은 NULL 제외", "COUNT(column)은 NULL 제외", "컬럼 COUNT는 NULL 제외"],
+        ["COUNT(*)는 행 전체", "COUNT(*)는 전체 행", "별표 COUNT는 전체 행"],
+      ],
       oneLine: "COUNT(*)는 행을 모두 세지만 COUNT(컬럼)은 그 컬럼이 NULL인 행을 세지 않는다.",
       memorize: "별표는 행 전체, 컬럼 이름은 값 있는 칸만 센다.",
       example: "5행 중 score가 NULL인 행이 2개면 COUNT(*)=5, COUNT(score)=3이다.",
@@ -865,10 +872,12 @@
       title: "AES, DES, ARIA, SEED, RSA, ECC",
       answer: "AES, DES, ARIA, SEED / RSA, ECC",
       accept: [["aes"], ["des"], ["aria"], ["seed"], ["rsa"], ["ecc"]],
+      answerMode: "partitioned",
+      partitionSizes: [4, 2],
       oneLine: "AES·DES·ARIA·SEED는 같은 키를 쓰는 대칭키, RSA·ECC는 공개키와 개인키를 나누는 비대칭키다.",
       memorize: "빠른 대칭 넷, 공개키 비대칭 둘로 묶어 외운다.",
       example: "대용량 데이터는 AES로 암호화하고 AES 키는 RSA로 전달할 수 있다.",
-      clues: ["대표 대칭키 네 가지와 대표 비대칭키 두 가지를 구분해 쓰시오.", "DES 계열과 국내 블록 암호 및 공개키·타원곡선 암호를 대칭/비대칭으로 분류하시오."],
+      clues: ["대표 대칭키 네 가지 / 대표 비대칭키 두 가지 순서로 구분해 쓰시오.", "DES 계열과 국내 블록 암호 및 공개키·타원곡선 암호를 대칭키 / 비대칭키 순서로 분류하시오."],
       aliases: ["암호 알고리즘 분류"],
       rounds: "23-2, 24-2",
     },

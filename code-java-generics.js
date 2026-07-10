@@ -138,7 +138,7 @@
     ["gm-java-gen-005", "Java", "code", "high", `Java 출력값은?\nclass Box<T> {\n  T v;\n  Box(T v) { this.v = v; }\n  T get() { return v; }\n}\nBox<Integer> b = new Box<>(7);\nSystem.out.print(b.get() + 3);`, ["10"], "10", "Box<Integer>이므로 get 결과 7에 3을 더한다.", ["Java", "제네릭", "Integer"]],
     ["gm-java-gen-006", "Java", "code", "high", `Java 출력값은?\nMap<String, Integer> m = new HashMap<>();\nm.put("A", 3);\nm.put("B", 5);\nSystem.out.print(m.get("A") + m.get("B"));`, ["8"], "8", "A의 값 3과 B의 값 5를 더한다.", ["Java", "제네릭", "Map"]],
     ["gm-java-gen-007", "Java", "code", "mid", "Java 제네릭에서 class Box<T>의 T는 무엇을 의미하는가?", ["타입", "type", "타입매개변수", "타입 매개변수"], "타입 매개변수", "T는 나중에 실제 타입으로 바뀌는 타입 자리 표시자다.", ["Java", "제네릭"]],
-    ["gm-java-gen-008", "Java", "code", "mid", "Java 제네릭에서 List<int> 대신 써야 하는 올바른 타입은?", ["listinteger", "list<integer>", "integer"], "List<Integer>", "제네릭 타입 인자에는 기본형 int가 아니라 래퍼 클래스 Integer를 쓴다.", ["Java", "제네릭", "래퍼"]],
+    ["gm-java-gen-008", "Java", "code", "mid", "Java 제네릭에서 List<int> 대신 써야 하는 올바른 타입은?", ["List<Integer>"], "List<Integer>", "제네릭 타입 인자에는 기본형 int가 아니라 래퍼 클래스 Integer를 쓴다.", ["Java", "제네릭", "래퍼"], { answerMode: "literal" }],
   ];
 
   window.CODE_SQL_PRACTICE_ROWS = [...(window.CODE_SQL_PRACTICE_ROWS || []), ...rows];

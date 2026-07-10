@@ -78,12 +78,31 @@ async function main() {
       const picked = state.mockDraft.itemIds.map((id) => byId.get(id));
       return {
         mode: state.mockDraft.mode,
+        form: state.mockDraft.form,
         code: picked.filter((item) => item.type === "code").length,
-        sqlDb: picked.filter((item) => item.type === "sql" || item.type === "db").length,
+        sql: picked.filter((item) => item.type === "sql").length,
+        db: picked.filter((item) => item.type === "db").length,
         theory: picked.filter((item) => !["code", "sql", "db"].includes(item.type)).length,
+        c: picked.filter((item) => item.tags.includes("C")).length,
+        java: picked.filter((item) => item.tags.includes("Java")).length,
+        python: picked.filter((item) => item.tags.includes("Python")).length,
+        must: picked.filter((item) => item.level === "must").length,
+        domains: new Set(picked.map((item) => item.domain)).size,
       };
     });
-    assert.deepEqual(standardComposition, { mode: "standard", code: 7, sqlDb: 4, theory: 9 });
+    assert.deepEqual(standardComposition, {
+      mode: "standard",
+      form: "A",
+      code: 7,
+      sql: 2,
+      db: 2,
+      theory: 9,
+      c: 3,
+      java: 3,
+      python: 1,
+      must: 7,
+      domains: 13,
+    });
     await page.locator("#mockAnswer").fill("새로고침 복원 답안");
     await page.locator("#mockFlag").check();
 
@@ -143,10 +162,11 @@ async function main() {
     assert.equal(await page.locator(".mock-history-row").count(), 1);
     await page.locator(".mock-history-row").click();
     assert.equal(await page.locator("#mockHistoryDetail .result-row").count(), 20);
-    assert.ok((await page.locator("#mockHistoryDetail").innerText()).includes("실전 표준"));
+    assert.ok((await page.locator("#mockHistoryDetail").innerText()).includes("실전 표준 A형"));
 
     await page.getByRole("tab", { name: "모의고사", exact: true }).click();
     await page.getByRole("button", { name: "약점 집중", exact: true }).click();
+    assert.equal(await page.locator("#mockFormSelector").isVisible(), false);
     await page.getByRole("button", { name: "새 시험 시작", exact: true }).click();
     assert.equal(
       await page.evaluate(() => window.JEONGCHEOGI_AUDIT.stateSnapshot().mockDraft.mode),
@@ -171,6 +191,26 @@ async function main() {
     await page.reload({ waitUntil: "domcontentloaded" });
     assert.equal(await page.locator("#mockBest").textContent(), "-");
     assert.ok((await page.locator(".mock-history-row").innerText()).includes("이전 방식"));
+
+    console.log("e2e: verify mobile standard-form controls");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("tab", { name: "모의고사", exact: true }).click();
+    assert.equal(await page.locator(".mock-form").count(), 5);
+    assert.equal(await page.locator("#mockFormSelector").isVisible(), true);
+    const mobileLayout = await page.evaluate(() => {
+      const viewportWidth = document.documentElement.clientWidth;
+      return {
+        noHorizontalOverflow: document.documentElement.scrollWidth <= viewportWidth,
+        formButtonsInsideViewport: [...document.querySelectorAll(".mock-form")].every((button) => {
+          const rect = button.getBoundingClientRect();
+          return rect.left >= 0 && rect.right <= viewportWidth;
+        }),
+      };
+    });
+    assert.deepEqual(mobileLayout, {
+      noHorizontalOverflow: true,
+      formButtonsInsideViewport: true,
+    });
     assert.deepEqual(browserErrors, []);
 
     console.log(
@@ -181,10 +221,11 @@ async function main() {
           restoredMockAnswer: true,
           restoredFlag: true,
           strictOutputAliases: true,
-          standardComposition: "7/4/9",
+          standardComposition: "A형 7/4/9 · C3/Java3/Python1 · 최우선7 · 13분야",
           atomicSubmitWrites: 1,
           weaknessMode: true,
           legacyMigration: true,
+          mobileFormLayout: true,
           persistedHistoryRows: 20,
           browserErrors: browserErrors.length,
         },

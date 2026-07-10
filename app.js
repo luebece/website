@@ -461,7 +461,7 @@ const PRACTICE = [
   card("code-001", "코드", "code", "must", "C 코드 출력값은?\nint a[] = {2, 4, 6};\nint *p = a;\nprintf(\"%d\", *(p + 2) + *p);", ["8"], "8", "*(p+2)는 6, *p는 2다.", ["C", "포인터"]),
   card("code-002", "코드", "code", "must", "C에서 3 << 2의 값은?", ["12"], "12", "왼쪽 시프트는 2의 제곱을 곱한다. 3*4=12.", ["C", "비트연산"]),
   card("code-003", "코드", "code", "must", "C 코드 출력값은?\nint x = 3;\nint a = x++;\nint b = ++x;\nprintf(\"%d\", a + b);", ["8"], "8", "a에는 증가 전 3이 들어가고 x는 4가 된다. 다음 줄의 ++x로 x와 b가 5가 되어 3+5=8이다.", ["C", "증감연산"]),
-  card("code-004", "코드", "code", "high", "C에서 구조체 포인터 p가 멤버 num에 접근할 때 쓰는 연산자는?", ["->", "화살표"], "->", "일반 구조체 변수는 점(.), 포인터는 화살표(->).", ["C", "구조체"]),
+  card("code-004", "코드", "code", "high", "C에서 구조체 포인터 p가 멤버 num에 접근할 때 쓰는 연산자는?", ["->"], "->", "일반 구조체 변수는 점(.), 포인터는 화살표(->).", ["C", "구조체"], { answerMode: "literal" }),
   card("code-005", "코드", "code", "high", "C 코드 출력값은?\nchar s[] = \"ABCDE\";\nprintf(\"%c\", s[1] + 2);", ["D", "d"], "D", "s[1]은 B, 문자 코드로 2를 더하면 D.", ["C", "문자열"]),
   card("code-006", "코드", "code", "must", "Java에서 부모 타입 변수 A a = new B(); 일 때 오버라이딩 메서드 호출은 A와 B 중 어느 클래스 구현이 실행되는가?", ["b", "자식", "하위", "실제객체"], "B", "오버라이딩은 실제 객체 타입 기준으로 동적 바인딩된다.", ["Java", "오버라이딩"]),
   card("code-007", "코드", "code", "must", "Java에서 서로 다른 int 배열 a, b가 같은 값을 가져도 a == b 결과는?", ["false", "거짓"], "false", "배열의 == 는 내용이 아니라 참조 주소 비교다.", ["Java", "참조비교"]),
@@ -472,7 +472,7 @@ const PRACTICE = [
   card("code-012", "코드", "code", "high", "Python 출력값은?\na = [1, 2, 3]\nb = a\nb.append(4)\nprint(len(a))", ["4"], "4", "b는 a와 같은 리스트를 참조한다.", ["Python", "참조"]),
   card("code-013", "코드", "code", "high", "재귀 함수가 자기 자신을 멈추게 하는 조건을 무엇이라 하는가?", ["종료조건", "basecase", "기저조건"], "기저 조건", "없으면 무한 재귀가 된다.", ["알고리즘", "재귀"]),
   card("code-014", "코드", "code", "mid", "C 삼항 연산자 a ? b : c 에서 a가 0이면 어느 값이 선택되는가?", ["c", "뒤", "세번째"], "c", "조건식이 거짓이면 콜론 뒤 값이다.", ["C", "삼항연산자"]),
-  card("code-015", "코드", "code", "mid", "Python에서 리스트 끝에 원소를 추가하는 메서드는?", ["append"], "append", "extend는 iterable을 풀어서 붙인다.", ["Python", "리스트"]),
+  card("code-015", "코드", "code", "mid", "Python에서 리스트 끝에 원소를 추가하는 메서드는?", ["append"], "append", "extend는 iterable을 풀어서 붙인다.", ["Python", "리스트"], { answerMode: "literal" }),
 
   card("net-001", "네트워크/OS", "netos", "must", "/23 서브넷 마스크를 십진수로 쓰시오.", ["255.255.254.0", "2552552540"], "255.255.254.0", "/23은 11111111.11111111.11111110.00000000.", ["CIDR", "서브넷"]),
   card("net-002", "네트워크/OS", "netos", "must", "192.168.11.20/23 이 속한 네트워크 주소는?", ["192.168.10.0", "192168100"], "192.168.10.0", "/23은 세 번째 옥텟이 2씩 묶인다. 10~11 블록.", ["CIDR", "서브넷"]),
@@ -525,6 +525,7 @@ const STORAGE_KEY = "jeongcheogi_5day_trainer_v1";
 const STATE_VERSION = 3;
 const BACKUP_APP_ID = "jeongcheogi-trainer";
 const MOCK_DURATION_MS = 150 * 60 * 1000;
+const STANDARD_MOCK_FORMS = ["A", "B", "C", "D", "E"];
 const REVIEW_INTERVALS_MS = [
   10 * 60 * 1000,
   24 * 60 * 60 * 1000,
@@ -541,6 +542,7 @@ let mockTimerId = null;
 let lastMockResult = null;
 let selectedMockHistoryId = null;
 let selectedMockMode = "standard";
+let selectedMockForm = "A";
 let storageWarningShown = false;
 let currentAcademyLang = "C";
 let currentCoverageSkill = null;
@@ -561,6 +563,7 @@ function card(id, domain, type, level, question, accept, answer, explain, tags, 
     explain,
     tags: [...new Set((tags || []).map((tag) => String(tag).trim()).filter(Boolean))],
     answerMode: options.answerMode,
+    partitionSizes: options.partitionSizes || [],
     wholeAccept: options.wholeAccept || [],
   };
 }
@@ -766,7 +769,10 @@ const THEORY_PRACTICE = THEORY_ITEMS.filter(
 
 state = loadState();
 mockSession = restoreMockSession(state.mockDraft);
-if (mockSession) selectedMockMode = selectableMockMode(mockSession.mode);
+if (mockSession) {
+  selectedMockMode = selectableMockMode(mockSession.mode);
+  selectedMockForm = mockSession.form || "A";
+}
 
 function emptyState() {
   return {
@@ -800,6 +806,10 @@ function selectableMockMode(mode) {
   return mode === "weakness" ? "weakness" : "standard";
 }
 
+function normalizeMockForm(form) {
+  return STANDARD_MOCK_FORMS.includes(form) ? form : null;
+}
+
 function normalizeMockDraft(value) {
   if (!isRecord(value) || !Array.isArray(value.itemIds)) return null;
   const knownIds = practiceItemMap();
@@ -823,10 +833,12 @@ function normalizeMockDraft(value) {
     if (isRecord(value.flags) && value.flags[id] === true) flags[id] = true;
   });
 
+  const mode = normalizeMockMode(value.mode);
   return {
     version: 1,
     id: typeof value.id === "string" ? value.id.slice(0, 80) : `mock-${startedAt}`,
-    mode: normalizeMockMode(value.mode),
+    mode,
+    form: mode === "standard" ? normalizeMockForm(value.form) : null,
     itemIds,
     index: Math.min(Math.max(Math.trunc(Number(value.index) || 0), 0), itemIds.length - 1),
     answers,
@@ -936,9 +948,11 @@ function normalizeState(value) {
                 maxPoints: 5,
               }))
           : [];
+        const mode = normalizeMockMode(entry.mode);
         return {
           id: String(entry.id || "").slice(0, 80),
-          mode: normalizeMockMode(entry.mode),
+          mode,
+          form: mode === "standard" ? normalizeMockForm(entry.form) : null,
           completedAt: Number.isFinite(entry.completedAt) ? entry.completedAt : 0,
           strictScore: Math.min(Math.max(Number(entry.strictScore) || 0, 0), 100),
           learningScore: Math.min(Math.max(Number(entry.learningScore) || 0, 0), 100),
@@ -1054,8 +1068,10 @@ function answerRule(item) {
     term: "용어형: 정답 전체 또는 등록된 동의어와 일치해야 한다.",
     numeric: "숫자형: 부호와 소수점을 포함해 정답 숫자를 정확히 쓴다.",
     output: "출력형: 부호, 소수점, 기호와 출력 순서를 정확히 쓴다.",
+    literal: "코드문법형: 대소문자와 괄호·꺾쇠·연산자를 정답 그대로 쓴다.",
     ordered: "순서형: 모든 답을 문제에서 요구한 순서대로 쓴다.",
     set: "복수답형: 필요한 항목을 모두 쓰며 항목 순서는 상관없다.",
+    partitioned: "분류형: 각 묶음 안의 답을 모두 쓰고 묶음 사이는 / 로 구분한다.",
   };
   return rules[window.ANSWER_ENGINE.answerMode(item)] || rules.term;
 }
@@ -1187,10 +1203,10 @@ function formatMockDate(timestamp) {
   }).format(new Date(timestamp));
 }
 
-function mockModeLabel(mode) {
+function mockModeLabel(mode, form = null) {
   if (mode === "weakness") return "약점 집중";
   if (mode === "legacy") return "이전 방식";
-  return "실전 표준";
+  return form ? `실전 표준 ${form}형` : "실전 표준";
 }
 
 function hydrateMockHistoryResults(entry) {
@@ -1238,7 +1254,11 @@ function renderMockHistoryDetail(historyId) {
   const previous = state.mockHistory
     .slice(0, entryIndex)
     .reverse()
-    .find((candidate) => candidate.mode === entry.mode);
+    .find(
+      (candidate) =>
+        candidate.mode === entry.mode &&
+        (entry.mode !== "standard" || candidate.form === entry.form),
+    );
   const delta = previous ? entry.strictScore - previous.strictScore : null;
   const results = hydrateMockHistoryResults(entry);
   const domains = analyzeMockDomains(results);
@@ -1247,7 +1267,7 @@ function renderMockHistoryDetail(historyId) {
     <div class="history-detail-head">
       <div>
         <h3>${escapeHtml(formatMockDate(entry.completedAt))} 상세 결과</h3>
-        <p>${mockModeLabel(entry.mode)} · 엄격 ${entry.strictScore}점 · 학습용 ${entry.learningScore}점${delta === null ? " · 첫 기록" : ` · 이전보다 ${delta > 0 ? "+" : ""}${delta}점`}${entry.timedOut ? " · 시간 종료" : ""}</p>
+        <p>${mockModeLabel(entry.mode, entry.form)} · 엄격 ${entry.strictScore}점 · 학습용 ${entry.learningScore}점${delta === null ? " · 첫 기록" : ` · 이전보다 ${delta > 0 ? "+" : ""}${delta}점`}${entry.timedOut ? " · 시간 종료" : ""}</p>
       </div>
       <button type="button" class="ghost-button" data-history-close>닫기</button>
     </div>
@@ -1318,7 +1338,7 @@ function renderMockHistory() {
       const delta = before ? entry.strictScore - before.strictScore : null;
       return `
         <button type="button" class="mock-history-row" data-history-id="${escapeHtml(entry.id)}">
-          <span>${escapeHtml(formatMockDate(entry.completedAt))} · ${mockModeLabel(entry.mode)}${entry.timedOut ? " · 시간 종료" : ""}</span>
+          <span>${escapeHtml(formatMockDate(entry.completedAt))} · ${mockModeLabel(entry.mode, entry.form)}${entry.timedOut ? " · 시간 종료" : ""}</span>
           <strong>엄격 ${entry.strictScore}점</strong>
           <span>학습 ${entry.learningScore}점${delta === null ? " · 첫 기록" : ` · ${delta >= 0 ? "+" : ""}${delta}`}</span>
         </button>
@@ -1904,26 +1924,85 @@ function renderRoutine() {
     .join("");
 }
 
+function stableFormRank(value) {
+  let hash = 2166136261;
+  for (const character of value) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function buildStandardMockForm(form, examPool = poolByMode("exam")) {
+  const safeForm = normalizeMockForm(form) || "A";
+  const picked = [];
+  const draw = (key, predicate) => {
+    const candidates = examPool
+      .filter(
+        (item) =>
+          !picked.some((candidate) => candidate.id === item.id) && predicate(item),
+      )
+      .sort(
+        (left, right) =>
+          stableFormRank(`${safeForm}:${key}:${left.id}`) -
+            stableFormRank(`${safeForm}:${key}:${right.id}`) ||
+          left.id.localeCompare(right.id),
+      );
+    if (!candidates.length) throw new Error(`표준 ${safeForm}형의 ${key} 문항이 부족합니다.`);
+    picked.push(candidates[0]);
+  };
+
+  [["C", 3], ["Java", 3], ["Python", 1]].forEach(([language, count]) => {
+    for (let index = 0; index < count; index += 1) {
+      draw(`code-${language}-${index}`, (item) =>
+        item.type === "code" && item.tags.includes(language),
+      );
+    }
+  });
+  draw("sql-must", (item) => item.type === "sql" && item.level === "must");
+  draw("sql-high", (item) => item.type === "sql" && item.level === "high");
+  draw("db-must", (item) => item.type === "db" && item.level === "must");
+  draw("db-high", (item) => item.type === "db" && item.level === "high");
+
+  draw("security-must", (item) => item.type === "security" && item.level === "must");
+  draw("security-high", (item) => item.type === "security" && item.level === "high");
+  draw("network-must", (item) => item.domain === "네트워크" && item.level === "must");
+  draw("os-must", (item) => item.domain === "OS" && item.level === "must");
+  draw("test-must", (item) => item.domain === "테스트/품질" && item.level === "must");
+  draw("design-must", (item) => item.domain === "설계/패턴" && item.level === "must");
+  draw("api-high", (item) => item.domain === "연계/API" && item.level === "high");
+  draw("ui-high", (item) => item.domain === "UI/UML" && item.level === "high");
+  const rotatingDomains = {
+    A: "요구사항",
+    B: "신기술",
+    C: "형상/배포",
+    D: "요구사항",
+    E: "신기술",
+  };
+  draw("rotating-high", (item) =>
+    item.domain === rotatingDomains[safeForm] && item.level === "high",
+  );
+  return picked;
+}
+
 function startMock() {
   if (mockSession && !confirm("진행 중인 시험을 버리고 새 시험을 시작할까요?")) return;
   const examPool = poolByMode("exam");
   const pool = examPool.length ? examPool : [...poolByMode("must"), ...poolByMode("all")];
   const picked = [];
-  const pickForMock = (items) =>
-    selectedMockMode === "weakness"
-      ? pickWeighted(items)
-      : items[Math.floor(Math.random() * items.length)];
 
   const draw = (items, count) => {
     while (count > 0) {
       const available = items.filter((item) => !picked.some((candidate) => candidate.id === item.id));
       if (!available.length) return;
-      picked.push(pickForMock(available));
+      picked.push(pickWeighted(available));
       count -= 1;
     }
   };
 
-  if (examPool.length) {
+  if (selectedMockMode === "standard" && examPool.length) {
+    picked.push(...buildStandardMockForm(selectedMockForm, examPool));
+  } else if (examPool.length) {
     draw(examPool.filter((item) => item.type === "code"), 7);
     draw(examPool.filter((item) => item.type === "sql" || item.type === "db"), 4);
     draw(examPool.filter((item) => !["code", "sql", "db"].includes(item.type)), 9);
@@ -1934,6 +2013,7 @@ function startMock() {
     version: 1,
     id: `mock-${startedAt}`,
     mode: selectedMockMode,
+    form: selectedMockMode === "standard" ? selectedMockForm : null,
     itemIds: picked.map((item) => item.id),
     index: 0,
     answers: {},
@@ -1953,6 +2033,7 @@ function serializeMockSession(session) {
     version: 1,
     id: session.id,
     mode: session.mode,
+    form: session.form,
     itemIds: session.itemIds,
     index: session.index,
     answers: session.answers,
@@ -2037,6 +2118,14 @@ function syncMockModeButtons() {
     button.setAttribute("aria-pressed", String(active));
     button.disabled = Boolean(mockSession);
   });
+  const formSelector = document.getElementById("mockFormSelector");
+  if (formSelector) formSelector.hidden = selectedMockMode !== "standard";
+  document.querySelectorAll(".mock-form").forEach((button) => {
+    const active = button.dataset.mockForm === selectedMockForm;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+    button.disabled = Boolean(mockSession);
+  });
 }
 
 function renderMock() {
@@ -2048,7 +2137,9 @@ function renderMock() {
       renderMockResult(lastMockResult);
       return;
     }
-    root.innerHTML = `<p class="empty-state">새 시험을 누르면 기출급 문제은행에서 코드 7문항, SQL/DB 4문항, 이론 9문항을 섞어 낸다.</p>`;
+    root.innerHTML = selectedMockMode === "standard"
+      ? `<p class="empty-state">${selectedMockForm}형은 언제 시작해도 같은 코드 7문항, SQL/DB 4문항, 이론 9문항이 나온다.</p>`
+      : `<p class="empty-state">새 시험을 누르면 오답·복습 상태를 반영한 코드 7문항, SQL/DB 4문항, 이론 9문항을 낸다.</p>`;
     return;
   }
   if (mockSession.deadline <= Date.now()) {
@@ -2083,7 +2174,7 @@ function renderMock() {
       <div class="mock-question">
         <div class="question-head">
           <span class="mock-progress">${mockSession.index + 1} / ${mockSession.items.length}</span>
-          <span class="pill">${mockModeLabel(mockSession.mode)} · ${escapeHtml(item.domain)}</span>
+          <span class="pill">${mockModeLabel(mockSession.mode, mockSession.form)} · ${escapeHtml(item.domain)}</span>
         </div>
         <pre class="question-text">${escapeHtml(item.question)}</pre>
         <label class="answer-box">
@@ -2158,6 +2249,7 @@ function finishMock({ timedOut = false, skipConfirm = false } = {}) {
   const completed = {
     id: session.id,
     mode: session.mode,
+    form: session.form,
     completedAt: Date.now(),
     strictScore,
     learningScore,
@@ -2170,6 +2262,7 @@ function finishMock({ timedOut = false, skipConfirm = false } = {}) {
   state.mockHistory.push({
     id: completed.id,
     mode: completed.mode,
+    form: completed.form,
     completedAt: completed.completedAt,
     strictScore,
     learningScore,
@@ -2199,7 +2292,7 @@ function renderMockResult(result) {
       <div class="mock-score-summary">
         <div><span>엄격 채점</span><strong>${result.strictScore}점</strong></div>
         <div><span>학습용 부분점수</span><strong>${result.learningScore}점</strong></div>
-        <p>${mockModeLabel(result.mode)} · ${result.timedOut ? "제한 시간이 끝나 자동 제출됐다. " : ""}${result.strictScore >= 60 ? "앱 문제은행에서는 60점 이상이다." : "엄격 채점 60점 미만이다. 오답과 오늘 복습부터 다시 푼다."} 실제 시험 합격 예측값은 아니다.</p>
+        <p>${mockModeLabel(result.mode, result.form)} · ${result.timedOut ? "제한 시간이 끝나 자동 제출됐다. " : ""}${result.strictScore >= 60 ? "앱 문제은행에서는 60점 이상이다." : "엄격 채점 60점 미만이다. 오답과 오늘 복습부터 다시 푼다."} 실제 시험 합격 예측값은 아니다.</p>
       </div>
       ${result.results
         .map((entry, index) => `
@@ -2239,6 +2332,7 @@ async function importProgress(file) {
     lastMockResult = null;
     selectedMockHistoryId = null;
     selectedMockMode = selectableMockMode(mockSession?.mode);
+    selectedMockForm = mockSession?.form || "A";
     saveState();
     renderDayPlan();
     renderQuestion();
@@ -2275,6 +2369,15 @@ function bindEvents() {
       if (mockSession) return;
       selectedMockMode = button.dataset.mockMode;
       syncMockModeButtons();
+    });
+  });
+
+  document.querySelectorAll(".mock-form").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (mockSession || selectedMockMode !== "standard") return;
+      selectedMockForm = normalizeMockForm(button.dataset.mockForm) || "A";
+      syncMockModeButtons();
+      renderMock();
     });
   });
 
@@ -2455,6 +2558,7 @@ function boot() {
 
 window.JEONGCHEOGI_AUDIT = Object.freeze({
   analyzeMockDomains,
+  buildStandardMockForm,
   practice: PRACTICE,
   scope: SCOPE_ITEMS,
   theoryPractice: THEORY_PRACTICE,

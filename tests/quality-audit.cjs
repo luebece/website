@@ -161,6 +161,14 @@ for (const item of items) {
       `${item.id}: invalid grouped answer`,
     );
   }
+  if (item.answerMode === "partitioned") {
+    assert.ok(Array.isArray(item.partitionSizes), `${item.id}: missing partition sizes`);
+    assert.equal(
+      item.partitionSizes.reduce((sum, size) => sum + size, 0),
+      item.groups.length,
+      `${item.id}: partition sizes do not cover every answer group`,
+    );
+  }
 }
 
 const exactQuestionGroups = new Map();
@@ -242,6 +250,53 @@ const unordered = audit.practice.find((item) => item.id === "cq-sql-013");
 assert.ok(unordered, "unordered fixture missing");
 assert.equal(engine.answerMode(unordered), "set");
 assert.ok(engine.matches("NULL 불가, 중복 불가", unordered), "unordered set reversal rejected");
+for (const invalid of ["중복 NULL", "중복, NULL", "unique null"]) {
+  assert.ok(!engine.matches(invalid, unordered), `primary-key negation was lost: ${invalid}`);
+}
+assert.ok(engine.matches("UNIQUE, NOT NULL", unordered));
+
+for (const id of ["master-sql-null-count-q1", "master-sql-null-count-q2"]) {
+  const countNull = audit.practice.find((item) => item.id === id);
+  assert.ok(countNull, `${id}: COUNT/NULL fixture missing`);
+  assert.ok(engine.matches("COUNT(컬럼)은 NULL 제외, COUNT(*)는 행 전체", countNull));
+  for (const invalid of ["COUNT NULL COUNT", "컬럼 제외 행", "COUNT 제외 전체"]) {
+    assert.ok(!engine.matches(invalid, countNull), `${id}: fragments accepted: ${invalid}`);
+  }
+}
+
+const dbDesignProcedure = audit.practice.find((item) => item.id === "master-db-design-q2");
+assert.ok(dbDesignProcedure, "DB design procedure fixture missing");
+assert.equal(engine.answerMode(dbDesignProcedure), "ordered");
+assert.ok(
+  !engine.matches("구현, 물리적 설계, 논리적 설계, 개념적 설계, 요구사항 분석", dbDesignProcedure),
+  "reversed DB design procedure was accepted",
+);
+
+for (const id of ["master-crypto-q1", "master-crypto-q2"]) {
+  const crypto = audit.practice.find((item) => item.id === id);
+  assert.ok(crypto, `${id}: crypto classification fixture missing`);
+  assert.equal(engine.answerMode(crypto), "partitioned");
+  assert.ok(engine.matches("SEED, AES, DES, ARIA / ECC, RSA", crypto));
+  assert.ok(!engine.matches("AES, DES, ARIA, SEED, RSA, ECC", crypto));
+  assert.ok(!engine.matches("AES, RSA, DES, ECC / ARIA, SEED", crypto));
+}
+
+const literalItems = items.filter((item) => engine.answerMode(item) === "literal");
+assert.equal(literalItems.length, 18, "unexpected literal item count");
+for (const item of literalItems) {
+  assert.ok(engine.matches(item.answer, item), `${item.id}: literal answer rejected`);
+  const spaced = [...item.answer].join(" ");
+  assert.ok(!engine.matches(spaced, item), `${item.id}: spaced literal accepted`);
+  const upper = item.answer.toUpperCase();
+  if (upper !== item.answer) {
+    assert.ok(!engine.matches(upper, item), `${item.id}: literal case was ignored`);
+  }
+}
+const genericLiteral = literalItems.find((item) => item.id === "gm-java-gen-008");
+assert.ok(!engine.matches("ListInteger", genericLiteral));
+assert.ok(!engine.matches("Integer", genericLiteral));
+const itemsLiteral = literalItems.find((item) => item.id === "gm-py-009");
+assert.ok(!engine.matches("items", itemsLiteral));
 
 const distinct = items.find((item) =>
   [...(item.accept || []), item.answer].some((value) =>
@@ -386,6 +441,30 @@ assert.deepEqual(
   [0, 100],
 );
 
+const standardFormSignatures = new Set();
+for (const form of ["A", "B", "C", "D", "E"]) {
+  const selected = audit.buildStandardMockForm(form);
+  const repeated = audit.buildStandardMockForm(form);
+  assert.deepEqual(
+    Array.from(selected, (item) => item.id),
+    Array.from(repeated, (item) => item.id),
+    `${form} form is not reproducible`,
+  );
+  assert.equal(selected.length, 20, `${form} form item count`);
+  assert.equal(new Set(selected.map((item) => item.id)).size, 20, `${form} form duplicate`);
+  assert.equal(selected.filter((item) => item.type === "code").length, 7);
+  assert.equal(selected.filter((item) => item.type === "sql").length, 2);
+  assert.equal(selected.filter((item) => item.type === "db").length, 2);
+  assert.equal(selected.filter((item) => !["code", "sql", "db"].includes(item.type)).length, 9);
+  assert.equal(selected.filter((item) => item.tags.includes("C")).length, 3);
+  assert.equal(selected.filter((item) => item.tags.includes("Java")).length, 3);
+  assert.equal(selected.filter((item) => item.tags.includes("Python")).length, 1);
+  assert.equal(selected.filter((item) => item.level === "must").length, 7);
+  assert.equal(new Set(selected.map((item) => item.domain)).size, 13);
+  standardFormSignatures.add(selected.map((item) => item.id).join("|"));
+}
+assert.equal(standardFormSignatures.size, 5, "standard forms are not distinct");
+
 const undefinedIncrement = audit.practice.filter((item) =>
   /x\+\+\s*\+\s*\+\+x|\+\+x\s*\+\s*x\+\+/.test(item.question),
 );
@@ -524,12 +603,12 @@ const assetRefs = [
   ),
 ];
 for (const ref of assetRefs) {
-  assert.ok(ref.endsWith("?v=16"), `unversioned executable asset: ${ref}`);
+  assert.ok(ref.endsWith("?v=17"), `unversioned executable asset: ${ref}`);
   assert.ok(fs.existsSync(ref.split("?")[0]), `missing executable asset: ${ref}`);
   assert.ok(serviceWorker.includes(`"./${ref}"`), `service worker does not cache: ${ref}`);
 }
 assert.ok(
-  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v16"'),
+  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v17"'),
   "service worker cache version mismatch",
 );
 for (const id of [
@@ -548,6 +627,9 @@ assert.ok(html.includes('data-mode="review"'), "review drill mode is missing");
 assert.ok(html.includes('role="tablist"'), "tab navigation semantics are missing");
 assert.ok(html.includes('data-mock-mode="standard"'), "standard mock mode is missing");
 assert.ok(html.includes('data-mock-mode="weakness"'), "weakness mock mode is missing");
+for (const form of ["A", "B", "C", "D", "E"]) {
+  assert.ok(html.includes(`data-mock-form="${form}"`), `standard ${form} form control missing`);
+}
 assert.ok(html.includes('maxlength="1000"'), "answer length limit is missing");
 assert.ok(
   fs.readFileSync("app.js", "utf8").includes('id="mockAnswer" rows="3" maxlength="1000"'),
