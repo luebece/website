@@ -16,11 +16,11 @@
   <body>
     <header class="app-header">
       <div>
-        <p class="eyebrow">2022년 1회부터 2026년 1회까지 공개 복원 범위 기반</p>
+        <p class="eyebrow">13회차 260문항 요구 기술을 학습·훈련과 1:1 연결</p>
         <h1>정처기 실기 5일 합격 훈련기</h1>
         <p class="header-copy">
-          기출 원문을 복제하지 않고, 반복 출제되는 범위와 유형을 변형 문제로 압축했다.
-          매일 외우고, 풀고, 틀린 것만 다시 끌고 오는 프로그램이다.
+          기출 원문을 복제하지 않고, 2022년 1회부터 2026년 1회까지 공개 복원 문항의
+          풀이 기술을 왕초보 설명과 동급 변형문제로 다시 만들었다.
         </p>
       </div>
       <div class="header-panel">
@@ -35,6 +35,7 @@
       <button class="tab" data-view="theory" type="button">왕초보 이론서</button>
       <button class="tab" data-view="codeacademy" type="button">코드 입문서</button>
       <button class="tab" data-view="scope" type="button">통합 범위</button>
+      <button class="tab" data-view="coverage" type="button">기출 260 커버</button>
       <button class="tab" data-view="drill" type="button">훈련장</button>
       <button class="tab" data-view="mock" type="button">모의고사</button>
       <button class="tab" data-view="survival" type="button">5일 루틴</button>
@@ -110,6 +111,14 @@
                 <strong>최빈출만 풀기</strong>
                 <span>코드, SQL, DB, 네트워크 핵심만</span>
               </button>
+              <button class="action-card" data-jump="coverage" type="button">
+                <strong>기출 260 확인</strong>
+                <span>회차별 요구 기술과 동급 문제 연결</span>
+              </button>
+              <button class="action-card" data-jump="drill" data-mode="exam" type="button">
+                <strong>기출급 문제만</strong>
+                <span>추가한 동급 변형문제에서 무작위 훈련</span>
+              </button>
               <button class="action-card" data-jump="drill" data-mode="wrong" type="button">
                 <strong>오답만 다시</strong>
                 <span>저장된 약점 태그 중심</span>
@@ -138,7 +147,7 @@
           </label>
           <select id="theoryFilter" aria-label="개념 중요도 필터">
             <option value="all">전체</option>
-            <option value="MAX">최우선</option>
+            <option value="MAX" selected>최우선</option>
             <option value="HIGH">높음</option>
             <option value="MID">중간</option>
           </select>
@@ -211,6 +220,59 @@
         </section>
       </section>
 
+      <section id="coverage" class="view">
+        <section class="panel theory-intro">
+          <h2>기출 260문항 커버리지</h2>
+          <p>
+            공개 복원 문제 문장을 그대로 싣지 않고, 각 문항이 요구한 지식과 풀이 기술을 표시한다.
+            모든 행은 왕초보 이론 또는 코드 입문서와 동급 변형문제로 연결된다.
+            처음에는 최신 2026년 1회 20문항을 보여주며, 회차를 전체로 바꾸면 260문항을 모두 볼 수 있다.
+          </p>
+        </section>
+        <div class="metric-grid coverage-metrics">
+          <article class="metric">
+            <span>대조 회차</span>
+            <strong id="coverageRoundCount">0</strong>
+            <small>2022-1 ~ 2026-1</small>
+          </article>
+          <article class="metric">
+            <span>대조 문항</span>
+            <strong id="coverageQuestionCount">0</strong>
+            <small>공개 복원 기준</small>
+          </article>
+          <article class="metric">
+            <span>콘텐츠 연결</span>
+            <strong id="coverageReadyCount">0</strong>
+            <small>이론과 변형문제 보유</small>
+          </article>
+          <article class="metric">
+            <span>동급 문제은행</span>
+            <strong id="coveragePracticeCount">0</strong>
+            <small>기출급 태그 문항</small>
+          </article>
+        </div>
+        <div class="toolbar coverage-toolbar">
+          <label class="search-box">
+            <span>문항 검색</span>
+            <input id="coverageSearch" type="search" placeholder="함수 포인터, 얕은 복사, CRC..." />
+          </label>
+          <label>
+            <span class="control-label">회차</span>
+            <select id="coverageRoundFilter" aria-label="기출 회차 필터">
+              <option value="all">전체 회차</option>
+            </select>
+          </label>
+          <label>
+            <span class="control-label">분야</span>
+            <select id="coverageDomainFilter" aria-label="기출 분야 필터">
+              <option value="all">모든 분야</option>
+            </select>
+          </label>
+          <span id="coverageVisibleCount" class="count-pill">0개</span>
+        </div>
+        <div id="coverageList" class="coverage-list"></div>
+      </section>
+
       <section id="drill" class="view">
         <div class="toolbar">
           <div class="segmented" role="group" aria-label="훈련 모드">
@@ -220,6 +282,7 @@
             <button class="mode" data-mode="code" type="button">코드</button>
             <button class="mode" data-mode="sql" type="button">SQL/DB</button>
             <button class="mode" data-mode="netos" type="button">네트워크/OS</button>
+            <button class="mode" data-mode="exam" type="button">기출급</button>
             <button class="mode" data-mode="wrong" type="button">오답</button>
           </div>
           <button id="nextQuestion" type="button" class="ghost-button">다음 문제</button>
@@ -263,7 +326,7 @@
               <button id="startMock" type="button" class="primary-button">새 시험 시작</button>
             </div>
             <div id="mockArea" class="mock-area">
-              <p class="empty-state">새 시험을 누르면 최빈출 비율을 높여 20문항을 섞어 낸다.</p>
+              <p class="empty-state">새 시험을 누르면 기출급 문제은행에서 코드 7문항, SQL/DB 4문항, 이론 9문항을 섞어 낸다.</p>
             </div>
           </section>
           <aside class="panel">
@@ -307,6 +370,11 @@
     <script src="code-sql-conquest.js"></script>
     <script src="code-sql-grandmaster.js"></script>
     <script src="code-java-generics.js"></script>
+    <script src="exam-master-theory.js"></script>
+    <script src="exam-master-code-c.js"></script>
+    <script src="exam-master-code-jps.js"></script>
+    <script src="exam-master-academy.js"></script>
+    <script src="exam-coverage.js"></script>
     <script src="app.js"></script>
     <script src="pwa.js"></script>
   </body>

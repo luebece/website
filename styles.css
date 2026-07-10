@@ -68,7 +68,7 @@ p {
 
 h1 {
   margin-bottom: 14px;
-  font-size: clamp(2rem, 5vw, 3.8rem);
+  font-size: 3.6rem;
   line-height: 1.05;
   letter-spacing: 0;
 }
@@ -382,6 +382,95 @@ select {
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+.control-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.coverage-toolbar .search-box {
+  min-width: 280px;
+}
+
+.coverage-toolbar > label:not(.search-box) {
+  min-width: 150px;
+}
+
+.coverage-list {
+  display: grid;
+  gap: 10px;
+}
+
+.coverage-item {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ok);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 22px rgba(28, 43, 57, 0.06);
+}
+
+.coverage-item.missing {
+  border-left-color: var(--danger);
+}
+
+.coverage-number {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  min-height: 64px;
+  padding-right: 12px;
+  border-right: 1px solid var(--line);
+}
+
+.coverage-number strong {
+  color: var(--accent-strong);
+}
+
+.coverage-number span,
+.coverage-copy p,
+.coverage-status {
+  color: var(--muted);
+}
+
+.coverage-copy {
+  min-width: 0;
+}
+
+.coverage-copy h3 {
+  margin: 8px 0;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.coverage-copy p {
+  margin: 3px 0 0;
+  line-height: 1.5;
+}
+
+.coverage-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.coverage-status {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.coverage-actions {
+  display: grid;
+  gap: 8px;
+  min-width: 110px;
 }
 
 .tags,
@@ -815,6 +904,10 @@ select {
 }
 
 @media (max-width: 920px) {
+  h1 {
+    font-size: 2.8rem;
+  }
+
   .app-header,
   .dashboard-layout,
   .mock-layout,
@@ -841,9 +934,23 @@ select {
   .trace-row p {
     grid-column: 1 / -1;
   }
+
+  .coverage-item {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .coverage-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 620px) {
+  h1 {
+    font-size: 2.2rem;
+    line-height: 1.15;
+  }
+
   .app-header {
     padding-top: 24px;
   }
@@ -867,10 +974,54 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .coverage-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .panel-title,
   .toolbar,
   .button-row {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .coverage-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .coverage-toolbar .search-box {
+    grid-column: 1 / -1;
+  }
+
+  .coverage-toolbar .search-box,
+  .coverage-toolbar > label:not(.search-box) {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .coverage-toolbar .count-pill {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .coverage-item {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .coverage-number {
+    grid-template-columns: auto auto;
+    justify-content: start;
+    min-height: 0;
+    padding: 0 0 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .coverage-actions {
+    grid-column: auto;
+    grid-template-columns: 1fr;
   }
 }

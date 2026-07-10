@@ -1,4 +1,4 @@
-const CACHE_NAME = "jeongcheogi-trainer-v3";
+const CACHE_NAME = "jeongcheogi-trainer-v11";
 
 const ASSETS = [
   "./",
@@ -10,6 +10,11 @@ const ASSETS = [
   "./code-sql-conquest.js",
   "./code-sql-grandmaster.js",
   "./code-java-generics.js",
+  "./exam-master-theory.js",
+  "./exam-master-code-c.js",
+  "./exam-master-code-jps.js",
+  "./exam-master-academy.js",
+  "./exam-coverage.js",
   "./app.js",
   "./pwa.js",
   "./manifest.webmanifest",

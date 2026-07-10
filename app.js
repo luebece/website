@@ -511,6 +511,7 @@ let currentMode = "all";
 let currentQuestion = null;
 let mockSession = null;
 let currentAcademyLang = "C";
+let currentCoverageSkill = null;
 
 function card(id, domain, type, level, question, accept, answer, explain, tags) {
   const groupAccept = Array.isArray(accept[0]) ? accept : null;
@@ -622,10 +623,16 @@ function poolByMode(mode) {
     return wrongItems.length ? wrongItems : PRACTICE.filter((item) => item.level === "must");
   }
   if (mode === "must") return PRACTICE.filter((item) => item.level === "must");
-  if (mode === "theory") return THEORY_PRACTICE;
+  if (mode === "theory") {
+    return [...THEORY_PRACTICE, ...PRACTICE.filter((item) => item.type === "theory")];
+  }
   if (mode === "sql") return PRACTICE.filter((item) => item.type === "sql" || item.type === "db");
   if (mode === "code") return PRACTICE.filter((item) => item.type === "code");
   if (mode === "netos") return PRACTICE.filter((item) => item.type === "netos" || item.type === "security");
+  if (mode === "exam") return PRACTICE.filter((item) => item.tags.includes("기출급"));
+  if (mode === "coverage" && currentCoverageSkill) {
+    return PRACTICE.filter((item) => item.tags.includes(`skill:${currentCoverageSkill}`));
+  }
   return PRACTICE;
 }
 
@@ -673,16 +680,30 @@ function renderHint(item) {
 }
 
 function setView(viewId) {
+  const heavyViews = {
+    theory: "theoryGrid",
+    codeacademy: "codeAcademyContent",
+    coverage: "coverageList",
+  };
+  Object.entries(heavyViews).forEach(([view, rootId]) => {
+    if (view !== viewId) document.getElementById(rootId)?.replaceChildren();
+  });
+
   document.querySelectorAll(".view").forEach((view) => {
     view.classList.toggle("active-view", view.id === viewId);
   });
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.view === viewId);
   });
-  if (viewId === "scope") renderScope();
+  if (viewId === "scope") {
+    renderScope();
+    renderSources();
+  }
   if (viewId === "theory") renderTheory();
   if (viewId === "codeacademy") renderCodeAcademy();
+  if (viewId === "coverage") renderCoverage();
   if (viewId === "mock") renderMock();
+  if (viewId === "survival") renderRoutine();
 }
 
 function updateStats() {
@@ -1031,8 +1052,104 @@ function renderSources() {
   ).join("");
 }
 
+function setupCoverageFilters() {
+  const coverage = window.EXAM_COVERAGE || [];
+  const roundFilter = document.getElementById("coverageRoundFilter");
+  const domainFilter = document.getElementById("coverageDomainFilter");
+  if (!roundFilter || !domainFilter) return;
+
+  if (roundFilter.options.length === 1) {
+    [...new Set(coverage.map((item) => item.round))].forEach((round) => {
+      roundFilter.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(round)}">${escapeHtml(round)}</option>`);
+    });
+    if (coverage.some((item) => item.round === "2026-1")) roundFilter.value = "2026-1";
+  }
+
+  if (domainFilter.options.length === 1) {
+    [...new Set(coverage.map((item) => item.domain))]
+      .sort((a, b) => a.localeCompare(b, "ko"))
+      .forEach((domain) => {
+        domainFilter.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(domain)}">${escapeHtml(domain)}</option>`);
+      });
+  }
+}
+
+function renderCoverage() {
+  const coverage = window.EXAM_COVERAGE || [];
+  const summary = window.EXAM_COVERAGE_SUMMARY || {};
+  const query = normalize(document.getElementById("coverageSearch")?.value || "");
+  const round = document.getElementById("coverageRoundFilter")?.value || "all";
+  const domain = document.getElementById("coverageDomainFilter")?.value || "all";
+  const examPractice = PRACTICE.filter((item) => item.tags.includes("기출급"));
+
+  document.getElementById("coverageRoundCount").textContent = summary.rounds || 0;
+  document.getElementById("coverageQuestionCount").textContent = summary.questions || 0;
+  document.getElementById("coverageReadyCount").textContent = `${summary.ready || 0}/${summary.questions || 0}`;
+  document.getElementById("coveragePracticeCount").textContent = examPractice.length;
+
+  const items = coverage.filter((item) => {
+    const haystack = normalize(`${item.round} ${item.number} ${item.domain} ${item.requirement} ${item.skillTitle}`);
+    return (
+      (round === "all" || item.round === round) &&
+      (domain === "all" || item.domain === domain) &&
+      (!query || haystack.includes(query))
+    );
+  });
+
+  document.getElementById("coverageVisibleCount").textContent = `${items.length}개`;
+  const root = document.getElementById("coverageList");
+  root.innerHTML = items
+    .map((item) => {
+      const skill = window.EXAM_SKILLS?.[item.skillId];
+      const completed = item.practiceIds.filter((id) => state.done[id]).length;
+      const total = item.practiceIds.length;
+      const codeLesson = skill?.kind === "code" && ["C", "Java", "Python", "SQL"].includes(skill.domain);
+      return `
+        <article class="coverage-item ${item.ready ? "ready" : "missing"}">
+          <div class="coverage-number">
+            <strong>${escapeHtml(item.round)}</strong>
+            <span>${item.number}번</span>
+          </div>
+          <div class="coverage-copy">
+            <div class="coverage-item-head">
+              <span class="pill">${escapeHtml(item.domain)}</span>
+              <span class="coverage-status">${item.ready ? "연결 완료" : "연결 필요"}</span>
+            </div>
+            <h3>${escapeHtml(item.requirement)}</h3>
+            <p><strong>학습 기술:</strong> ${escapeHtml(item.skillTitle)}</p>
+            <p><strong>동급 훈련:</strong> ${completed}/${total}문항 완료</p>
+          </div>
+          <div class="coverage-actions">
+            <button
+              type="button"
+              class="ghost-button"
+              data-coverage-action="lesson"
+              data-skill="${escapeHtml(item.skillId)}"
+              data-code-lesson="${codeLesson ? "true" : "false"}"
+            >설명 보기</button>
+            <button
+              type="button"
+              class="primary-button"
+              data-coverage-action="practice"
+              data-skill="${escapeHtml(item.skillId)}"
+            >동급 문제</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function renderQuestion() {
   const pool = poolByMode(currentMode);
+  if (!pool.length) {
+    currentQuestion = null;
+    document.getElementById("questionDomain").textContent = "-";
+    document.getElementById("questionLevel").textContent = "-";
+    document.getElementById("questionText").textContent = "이 범위에 연결된 문제가 아직 없습니다.";
+    document.getElementById("solveGuide").innerHTML = "";
+    return;
+  }
   const next = pickWeighted(pool);
   currentQuestion = next.id === currentQuestion?.id && pool.length > 1 ? pickWeighted(pool) : next;
   document.getElementById("questionDomain").textContent = currentQuestion.domain;
@@ -1137,12 +1254,25 @@ function renderRoutine() {
 }
 
 function startMock() {
-  const pool = [...poolByMode("must"), ...poolByMode("all")];
+  const examPool = poolByMode("exam");
+  const pool = examPool.length ? examPool : [...poolByMode("must"), ...poolByMode("all")];
   const picked = [];
-  while (picked.length < 20 && picked.length < PRACTICE.length) {
-    const item = pickWeighted(pool);
-    if (!picked.some((candidate) => candidate.id === item.id)) picked.push(item);
+
+  const draw = (items, count) => {
+    while (count > 0) {
+      const available = items.filter((item) => !picked.some((candidate) => candidate.id === item.id));
+      if (!available.length) return;
+      picked.push(pickWeighted(available));
+      count -= 1;
+    }
+  };
+
+  if (examPool.length) {
+    draw(examPool.filter((item) => item.type === "code"), 7);
+    draw(examPool.filter((item) => item.type === "sql" || item.type === "db"), 4);
+    draw(examPool.filter((item) => !["code", "sql", "db"].includes(item.type)), 9);
   }
+  draw(pool, 20 - picked.length);
   mockSession = { index: 0, items: picked, results: [] };
   renderMock();
 }
@@ -1150,7 +1280,7 @@ function startMock() {
 function renderMock() {
   const root = document.getElementById("mockArea");
   if (!mockSession) {
-    root.innerHTML = `<p class="empty-state">새 시험을 누르면 최빈출 비율을 높여 20문항을 섞어 낸다.</p>`;
+    root.innerHTML = `<p class="empty-state">새 시험을 누르면 기출급 문제은행에서 코드 7문항, SQL/DB 4문항, 이론 9문항을 섞어 낸다.</p>`;
     return;
   }
   if (mockSession.index >= mockSession.items.length) {
@@ -1231,6 +1361,7 @@ function bindEvents() {
     button.addEventListener("click", () => {
       document.querySelectorAll(".mode").forEach((mode) => mode.classList.remove("active"));
       button.classList.add("active");
+      currentCoverageSkill = null;
       currentMode = button.dataset.mode;
       renderQuestion();
     });
@@ -1255,6 +1386,36 @@ function bindEvents() {
   document.getElementById("theorySearch").addEventListener("input", renderTheory);
   document.getElementById("theoryFilter").addEventListener("change", renderTheory);
   document.getElementById("theoryDomainFilter").addEventListener("change", renderTheory);
+  document.getElementById("coverageSearch").addEventListener("input", renderCoverage);
+  document.getElementById("coverageRoundFilter").addEventListener("change", renderCoverage);
+  document.getElementById("coverageDomainFilter").addEventListener("change", renderCoverage);
+  document.getElementById("coverageList").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-coverage-action]");
+    if (!button) return;
+    const skillId = button.dataset.skill;
+    const skill = window.EXAM_SKILLS?.[skillId];
+    if (!skill) return;
+
+    if (button.dataset.coverageAction === "practice") {
+      currentCoverageSkill = skillId;
+      currentMode = "coverage";
+      document.querySelectorAll(".mode").forEach((mode) => mode.classList.remove("active"));
+      setView("drill");
+      renderQuestion();
+      return;
+    }
+
+    if (button.dataset.codeLesson === "true") {
+      currentAcademyLang = skill.domain;
+      setView("codeacademy");
+      return;
+    }
+
+    document.getElementById("theorySearch").value = skill.title;
+    document.getElementById("theoryFilter").value = "all";
+    document.getElementById("theoryDomainFilter").value = "all";
+    setView("theory");
+  });
   document.querySelectorAll(".academy-lang").forEach((button) => {
     button.addEventListener("click", () => {
       currentAcademyLang = button.dataset.lang;
@@ -1263,6 +1424,7 @@ function bindEvents() {
   });
   document.getElementById("academyDrill").addEventListener("click", () => {
     setView("drill");
+    currentCoverageSkill = null;
     currentMode = currentAcademyLang === "SQL" ? "sql" : "code";
     document.querySelectorAll(".mode").forEach((mode) => {
       mode.classList.toggle("active", mode.dataset.mode === currentMode);
@@ -1306,6 +1468,7 @@ function bindEvents() {
       const view = cardButton.dataset.jump;
       setView(view);
       if (cardButton.dataset.mode) {
+        currentCoverageSkill = null;
         currentMode = cardButton.dataset.mode;
         document.querySelectorAll(".mode").forEach((mode) => {
           mode.classList.toggle("active", mode.dataset.mode === currentMode);
@@ -1317,6 +1480,7 @@ function bindEvents() {
 
   document.getElementById("panicStart").addEventListener("click", () => {
     setView("drill");
+    currentCoverageSkill = null;
     currentMode = "must";
     document.querySelectorAll(".mode").forEach((mode) => {
       mode.classList.toggle("active", mode.dataset.mode === "must");
@@ -1326,6 +1490,7 @@ function bindEvents() {
 
   document.getElementById("rookieStart").addEventListener("click", () => {
     setView("drill");
+    currentCoverageSkill = null;
     currentMode = "must";
     document.querySelectorAll(".mode").forEach((mode) => {
       mode.classList.toggle("active", mode.dataset.mode === "must");
@@ -1341,12 +1506,8 @@ function bindEvents() {
 
 function boot() {
   bindEvents();
+  setupCoverageFilters();
   renderDayPlan();
-  renderTheory();
-  renderCodeAcademy();
-  renderScope();
-  renderSources();
-  renderRoutine();
   renderQuestion();
   updateStats();
 }
