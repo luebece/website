@@ -66,7 +66,8 @@
         pendingSpace = false;
       }
     }
-    return output.trim();
+    const normalized = output.trim();
+    return normalized.endsWith(";") ? normalized.slice(0, -1).trimEnd() : normalized;
   }
 
   function unique(values) {

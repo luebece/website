@@ -190,6 +190,7 @@ async function main() {
     });
     await page.reload({ waitUntil: "domcontentloaded" });
     assert.equal(await page.locator("#mockTrend").textContent(), "최근 80점");
+    assert.equal(await page.locator("#legacyMockBest").isVisible(), false);
     const crossFormRows = page.locator(".mock-history-row");
     assert.equal(await crossFormRows.count(), 2);
     assert.ok((await crossFormRows.nth(0).innerText()).includes("첫 기록"));
@@ -212,6 +213,11 @@ async function main() {
     });
     await page.reload({ waitUntil: "domcontentloaded" });
     assert.equal(await page.locator("#mockBest").textContent(), "-");
+    assert.equal(await page.locator("#legacyMockBest").isVisible(), true);
+    assert.equal(
+      await page.locator("#legacyMockBest").textContent(),
+      "이전 최고 88점 · 형식 미확인",
+    );
     assert.ok((await page.locator(".mock-history-row").innerText()).includes("이전 표준(무작위)"));
 
     console.log("e2e: verify mobile standard-form controls");

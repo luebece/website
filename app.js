@@ -438,7 +438,7 @@ const BEGINNER_GUIDES = {
 
 const PRACTICE = [
   card("db-001", "DB/SQL", "sql", "must", "SQL에서 중복 행을 제거해 조회하는 예약어는?", ["distinct", "중복제거"], "DISTINCT", "SELECT DISTINCT 컬럼 FROM 테이블 형태로 쓴다.", ["SQL", "DISTINCT"]),
-  card("db-002", "DB/SQL", "sql", "must", "DEPT 값의 종류 수만 세려면 COUNT 안에 어떤 표현을 넣는가?", ["COUNT(DISTINCT DEPT)"], "COUNT(DISTINCT DEPT)", "행 수가 아니라 서로 다른 값의 개수다.", ["SQL", "집계"], { answerMode: "sql-literal" }),
+  card("db-002", "DB/SQL", "sql", "must", "DEPT의 서로 다른 값 개수를 세는 집계 함수 표현을 쓰시오.", ["COUNT(DISTINCT DEPT)"], "COUNT(DISTINCT DEPT)", "행 수가 아니라 서로 다른 값의 개수다.", ["SQL", "집계"], { answerMode: "sql-literal" }),
   card("db-003", "DB/SQL", "sql", "must", "테이블 생성, 변경, 삭제를 담당하는 SQL 언어 분류는?", ["ddl", "데이터정의어"], "DDL", "CREATE, ALTER, DROP, TRUNCATE가 대표적이다.", ["SQL", "DDL"]),
   card("db-004", "DB/SQL", "sql", "must", "SELECT, INSERT, UPDATE, DELETE는 어떤 SQL 언어 분류인가?", ["dml", "데이터조작어"], "DML", "데이터를 조회하거나 조작한다.", ["SQL", "DML"]),
   card("db-005", "DB/SQL", "sql", "high", "GRANT와 REVOKE가 속한 SQL 언어 분류는?", ["dcl", "데이터제어어"], "DCL", "권한을 부여하거나 회수한다.", ["SQL", "DCL"]),
@@ -832,6 +832,7 @@ function emptyState() {
     log: [],
     mockBest: null,
     mockBestFormVersion: STANDARD_MOCK_FORM_VERSION,
+    legacyMockBest: null,
     mastery: {},
     mockDraft: null,
     mockHistory: [],
@@ -955,6 +956,15 @@ function normalizeState(value) {
   const normalizedSavedMockBest = Number.isFinite(savedMockBest)
     ? Math.min(Math.max(Math.round(savedMockBest), 0), 100)
     : null;
+  const savedLegacyMockBest = source.legacyMockBest === null || source.legacyMockBest === undefined
+    ? null
+    : Number(source.legacyMockBest);
+  const normalizedLegacyMockBest = Number.isFinite(savedLegacyMockBest)
+    ? Math.min(Math.max(Math.round(savedLegacyMockBest), 0), 100)
+    : null;
+  result.legacyMockBest = sourceVersion < STATE_VERSION
+    ? normalizedSavedMockBest ?? normalizedLegacyMockBest
+    : normalizedLegacyMockBest;
 
   if (isRecord(source.mastery)) {
     Object.entries(source.mastery).forEach(([id, record]) => {
@@ -1450,6 +1460,11 @@ function updateStats() {
   document.getElementById("reviewDueCount").textContent = reviewDueCount;
   document.getElementById("accuracy").textContent = `${accuracy}%`;
   document.getElementById("mockBest").textContent = state.mockBest === null ? "-" : `${state.mockBest}점`;
+  const legacyMockBest = document.getElementById("legacyMockBest");
+  legacyMockBest.hidden = state.legacyMockBest === null;
+  legacyMockBest.textContent = state.legacyMockBest === null
+    ? ""
+    : `이전 최고 ${state.legacyMockBest}점 · 형식 미확인`;
   document.getElementById("todayMode").textContent = `Day ${state.day}: ${DAY_PLANS[state.day - 1].focus}`;
   document.getElementById("daySelect").value = String(state.day);
   renderWeakTags();

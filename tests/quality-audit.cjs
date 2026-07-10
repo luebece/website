@@ -315,11 +315,15 @@ assert.equal(sqlLiteralItems.length, 4, "unexpected SQL literal item count");
 for (const item of sqlLiteralItems) {
   if (item.id === "cq-sql-012") continue;
   assert.ok(engine.matches(item.answer.toLowerCase(), item), `${item.id}: lowercase SQL rejected`);
+  assert.ok(engine.matches(`${item.answer};`, item), `${item.id}: trailing semicolon rejected`);
 }
 const likeLiteral = sqlLiteralItems.find((item) => item.id === "cq-sql-012");
 assert.ok(engine.matches("like 'A%'", likeLiteral));
+assert.ok(engine.matches("like 'A%';", likeLiteral));
 assert.ok(!engine.matches("like 'a%'", likeLiteral), "SQL string literal case was ignored");
+assert.ok(!engine.matches("like 'a%';", likeLiteral), "SQL string literal case was ignored with semicolon");
 const distinctLiteral = sqlLiteralItems.find((item) => item.id === "db-002");
+assert.equal(distinctLiteral.question, "DEPT의 서로 다른 값 개수를 세는 집계 함수 표현을 쓰시오.");
 assert.ok(engine.matches("count ( distinct dept )", distinctLiteral));
 assert.ok(!engine.matches("count distinct dept", distinctLiteral));
 
@@ -576,6 +580,7 @@ assert.equal(migratedLegacyState.version, 4);
 assert.equal(migratedLegacyState.mockDraft.mode, "legacy");
 assert.equal(migratedLegacyState.mockHistory[0].mode, "legacy");
 assert.equal(migratedLegacyState.mockBest, null, "legacy score became a standard best");
+assert.equal(migratedLegacyState.legacyMockBest, 80);
 
 const migratedMixedState = audit.normalizeState({
   version: 2,
@@ -588,6 +593,7 @@ const migratedMixedState = audit.normalizeState({
 });
 assert.equal(migratedMixedState.mockHistory[1].mode, "legacy-standard");
 assert.equal(migratedMixedState.mockBest, null, "random standard score leaked into fixed-form best");
+assert.equal(migratedMixedState.legacyMockBest, 95);
 assert.equal(audit.normalizeMockMode("unknown"), "legacy");
 
 const migratedV3RandomState = audit.normalizeState({
@@ -606,6 +612,7 @@ assert.equal(migratedV3RandomState.mockDraft.mode, "legacy-standard");
 assert.equal(migratedV3RandomState.mockDraft.form, null);
 assert.equal(migratedV3RandomState.mockHistory[0].mode, "legacy-standard");
 assert.equal(migratedV3RandomState.mockBest, null);
+assert.equal(migratedV3RandomState.legacyMockBest, 88);
 
 const migratedV3FixedState = audit.normalizeState({
   version: 3,
@@ -615,11 +622,13 @@ const migratedV3FixedState = audit.normalizeState({
 assert.equal(migratedV3FixedState.mockHistory[0].mode, "standard");
 assert.equal(migratedV3FixedState.mockHistory[0].formVersion, 1);
 assert.equal(migratedV3FixedState.mockBest, 75);
+assert.equal(migratedV3FixedState.legacyMockBest, 95);
 
 const currentStateBest = audit.normalizeState({
   version: 4,
   mockBest: 95,
   mockBestFormVersion: 1,
+  legacyMockBest: 88,
   mockHistory: [{
     id: "recent-standard",
     mode: "standard",
@@ -629,6 +638,7 @@ const currentStateBest = audit.normalizeState({
   }],
 });
 assert.equal(currentStateBest.mockBest, 95, "current all-time standard best was discarded");
+assert.equal(currentStateBest.legacyMockBest, 88);
 
 const backupState = audit.emptyState();
 backupState.day = 4;
@@ -674,12 +684,12 @@ const assetRefs = [
   ),
 ];
 for (const ref of assetRefs) {
-  assert.ok(ref.endsWith("?v=18"), `unversioned executable asset: ${ref}`);
+  assert.ok(ref.endsWith("?v=19"), `unversioned executable asset: ${ref}`);
   assert.ok(fs.existsSync(ref.split("?")[0]), `missing executable asset: ${ref}`);
   assert.ok(serviceWorker.includes(`"./${ref}"`), `service worker does not cache: ${ref}`);
 }
 assert.ok(
-  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v18"'),
+  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v19"'),
   "service worker cache version mismatch",
 );
 for (const id of [
@@ -691,6 +701,7 @@ for (const id of [
   "mockHistoryList",
   "mockHistoryDetail",
   "mockTrend",
+  "legacyMockBest",
 ]) {
   assert.ok(html.includes(`id="${id}"`), `missing required UI control: ${id}`);
 }
