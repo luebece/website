@@ -522,7 +522,7 @@ const PRACTICE = [
 PRACTICE.push(...(window.CODE_SQL_PRACTICE_ROWS || []).map((row) => card(...row)));
 
 const STORAGE_KEY = "jeongcheogi_5day_trainer_v1";
-const STATE_VERSION = 2;
+const STATE_VERSION = 3;
 const BACKUP_APP_ID = "jeongcheogi-trainer";
 const MOCK_DURATION_MS = 150 * 60 * 1000;
 const REVIEW_INTERVALS_MS = [
@@ -583,6 +583,18 @@ const THEORY_EXCLUDED_TAGS = new Set([
 ]);
 
 const THEORY_COMPOSITE_ANSWERS = {
+  "deep-ui-002": {
+    groups: [["와이어프레임", "Wireframe"], ["스토리보드", "Storyboard"], ["프로토타입", "Prototype"]],
+  },
+  "deep-db-005": {
+    groups: [["1NF", "제1정규형"], ["2NF", "제2정규형"], ["3NF", "제3정규형"], ["BCNF", "보이스코드정규형"]],
+  },
+  "deep-sec-008": {
+    groups: [["IDS", "침입탐지시스템"], ["IPS", "침입방지시스템"], ["방화벽", "Firewall"]],
+  },
+  "deep-test-004": {
+    groups: [["단위 테스트", "단위"], ["통합 테스트", "통합"], ["시스템 테스트", "시스템"], ["인수 테스트", "인수"]],
+  },
   "master-recovery": {
     groups: [["REDO", "재실행"], ["UNDO", "취소"]],
   },
@@ -754,7 +766,7 @@ const THEORY_PRACTICE = THEORY_ITEMS.filter(
 
 state = loadState();
 mockSession = restoreMockSession(state.mockDraft);
-if (mockSession) selectedMockMode = mockSession.mode;
+if (mockSession) selectedMockMode = selectableMockMode(mockSession.mode);
 
 function emptyState() {
   return {
@@ -777,6 +789,15 @@ function isRecord(value) {
 
 function practiceItemMap() {
   return new Map([...PRACTICE, ...THEORY_PRACTICE].map((item) => [item.id, item]));
+}
+
+function normalizeMockMode(mode) {
+  if (mode === "standard" || mode === "weakness" || mode === "legacy") return mode;
+  return "legacy";
+}
+
+function selectableMockMode(mode) {
+  return mode === "weakness" ? "weakness" : "standard";
 }
 
 function normalizeMockDraft(value) {
@@ -805,7 +826,7 @@ function normalizeMockDraft(value) {
   return {
     version: 1,
     id: typeof value.id === "string" ? value.id.slice(0, 80) : `mock-${startedAt}`,
-    mode: value.mode === "weakness" ? "weakness" : "standard",
+    mode: normalizeMockMode(value.mode),
     itemIds,
     index: Math.min(Math.max(Math.trunc(Number(value.index) || 0), 0), itemIds.length - 1),
     answers,
@@ -817,6 +838,7 @@ function normalizeMockDraft(value) {
 
 function normalizeState(value) {
   const source = isRecord(value) ? value : {};
+  const sourceVersion = Math.max(Math.trunc(Number(source.version) || 0), 0);
   const result = emptyState();
   const knownIds = practiceItemMap();
   result.day = Math.min(Math.max(Math.trunc(Number(source.day) || 1), 1), 5);
@@ -848,11 +870,11 @@ function normalizeState(value) {
       }));
   }
 
-  const mockBest = source.mockBest === null || source.mockBest === undefined
+  const savedMockBest = source.mockBest === null || source.mockBest === undefined
     ? null
     : Number(source.mockBest);
-  result.mockBest = Number.isFinite(mockBest)
-    ? Math.min(Math.max(Math.round(mockBest), 0), 100)
+  const normalizedSavedMockBest = Number.isFinite(savedMockBest)
+    ? Math.min(Math.max(Math.round(savedMockBest), 0), 100)
     : null;
 
   if (isRecord(source.mastery)) {
@@ -916,7 +938,7 @@ function normalizeState(value) {
           : [];
         return {
           id: String(entry.id || "").slice(0, 80),
-          mode: entry.mode === "weakness" ? "weakness" : "standard",
+          mode: normalizeMockMode(entry.mode),
           completedAt: Number.isFinite(entry.completedAt) ? entry.completedAt : 0,
           strictScore: Math.min(Math.max(Number(entry.strictScore) || 0, 0), 100),
           learningScore: Math.min(Math.max(Number(entry.learningScore) || 0, 0), 100),
@@ -925,6 +947,14 @@ function normalizeState(value) {
         };
       });
   }
+  const standardHistoryScores = result.mockHistory
+    .filter((entry) => entry.mode === "standard")
+    .map((entry) => entry.strictScore);
+  result.mockBest = sourceVersion >= STATE_VERSION
+    ? normalizedSavedMockBest
+    : standardHistoryScores.length
+      ? Math.max(...standardHistoryScores)
+      : null;
   return result;
 }
 
@@ -1158,7 +1188,9 @@ function formatMockDate(timestamp) {
 }
 
 function mockModeLabel(mode) {
-  return mode === "weakness" ? "약점 집중" : "실전 표준";
+  if (mode === "weakness") return "약점 집중";
+  if (mode === "legacy") return "이전 방식";
+  return "실전 표준";
 }
 
 function hydrateMockHistoryResults(entry) {
@@ -2206,7 +2238,7 @@ async function importProgress(file) {
     mockSession = restoreMockSession(state.mockDraft);
     lastMockResult = null;
     selectedMockHistoryId = null;
-    selectedMockMode = mockSession?.mode || "standard";
+    selectedMockMode = selectableMockMode(mockSession?.mode);
     saveState();
     renderDayPlan();
     renderQuestion();
@@ -2433,6 +2465,7 @@ window.JEONGCHEOGI_AUDIT = Object.freeze({
   isMasteryDue,
   masteryTransition,
   normalizeImportedState,
+  normalizeMockMode,
   normalizeMockDraft,
   normalizeState,
   readStateFromStorage,

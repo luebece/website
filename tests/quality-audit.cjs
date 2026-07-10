@@ -85,6 +85,7 @@ assert.equal(bootRestored.mockHistory.length, 1);
 assert.equal(bootRestored.mockHistory[0].results.length, 2);
 assert.equal(bootRestored.mockHistory[0].results[1].input, "20");
 assert.equal(bootRestored.mockHistory[0].mode, "weakness");
+assert.equal(bootRestored.mockBest, null, "weakness-only legacy best leaked into standard best");
 
 assert.deepEqual(
   [...audit.scope.map((item) => item.officialNo)].sort((a, b) => a - b),
@@ -330,7 +331,25 @@ assert.ok(engine.matches("싱글톤", singletonTerm), "valid code-concept alias 
 const strictCompositeTheory = audit.theoryPractice.filter(
   (item) => item.groups?.length && item.answerMode === "set",
 );
-assert.equal(strictCompositeTheory.length, 41, "unexpected composite theory item count");
+const ungroupedCommaTheory = audit.theoryPractice
+  .filter((item) => item.answer.includes(",") && !item.groups?.length)
+  .map((item) => item.id);
+assert.deepEqual(
+  Array.from(ungroupedCommaTheory),
+  [],
+  `comma-listed theory answer lacks grouped grading: ${ungroupedCommaTheory.join(", ")}`,
+);
+for (const id of [
+  "theory-deep-ui-002",
+  "theory-deep-db-005",
+  "theory-deep-sec-008",
+  "theory-deep-test-004",
+]) {
+  assert.ok(
+    strictCompositeTheory.some((item) => item.id === id),
+    `${id}: required composite grading fixture missing`,
+  );
+}
 for (const item of strictCompositeTheory) {
   for (const group of item.groups) {
     assert.ok(
@@ -415,10 +434,51 @@ const normalizedDraft = audit.normalizeMockDraft({
 });
 assert.deepEqual(Array.from(normalizedDraft.itemIds), [firstItemId, secondItemId]);
 assert.equal(normalizedDraft.index, 1);
-assert.equal(normalizedDraft.mode, "standard");
+assert.equal(normalizedDraft.mode, "legacy");
 assert.equal(normalizedDraft.answers[firstItemId], "answer");
 assert.equal(normalizedDraft.answers.unknown, undefined);
 assert.equal(normalizedDraft.flags[secondItemId], true);
+
+const migratedLegacyState = audit.normalizeState({
+  version: 2,
+  mockBest: 80,
+  mockDraft: {
+    id: "old-draft",
+    itemIds: [firstItemId],
+    startedAt: transitionNow,
+    deadline: transitionNow + 150 * 60 * 1000,
+  },
+  mockHistory: [{
+    id: "old-history",
+    completedAt: transitionNow,
+    strictScore: 80,
+    learningScore: 80,
+    results: [],
+  }],
+});
+assert.equal(migratedLegacyState.version, 3);
+assert.equal(migratedLegacyState.mockDraft.mode, "legacy");
+assert.equal(migratedLegacyState.mockHistory[0].mode, "legacy");
+assert.equal(migratedLegacyState.mockBest, null, "legacy score became a standard best");
+
+const migratedMixedState = audit.normalizeState({
+  version: 2,
+  mockBest: 95,
+  mockHistory: [
+    { id: "old", strictScore: 95 },
+    { id: "standard", mode: "standard", strictScore: 75 },
+    { id: "weakness", mode: "weakness", strictScore: 90 },
+  ],
+});
+assert.equal(migratedMixedState.mockBest, 75, "v2 best was not rebuilt from standard history");
+assert.equal(audit.normalizeMockMode("unknown"), "legacy");
+
+const currentStateBest = audit.normalizeState({
+  version: 3,
+  mockBest: 95,
+  mockHistory: [{ id: "recent-standard", mode: "standard", strictScore: 75 }],
+});
+assert.equal(currentStateBest.mockBest, 95, "current all-time standard best was discarded");
 
 const backupState = audit.emptyState();
 backupState.day = 4;
@@ -427,7 +487,7 @@ backupState.wrong[secondItemId] = 2;
 backupState.mockDraft = normalizedDraft;
 const backup = audit.createExportPayload(backupState);
 assert.equal(backup.app, "jeongcheogi-trainer");
-assert.equal(backup.version, 2);
+assert.equal(backup.version, 3);
 const imported = audit.normalizeImportedState(backup);
 assert.equal(imported.day, 4);
 assert.equal(imported.done[firstItemId], true);
@@ -464,12 +524,12 @@ const assetRefs = [
   ),
 ];
 for (const ref of assetRefs) {
-  assert.ok(ref.endsWith("?v=15"), `unversioned executable asset: ${ref}`);
+  assert.ok(ref.endsWith("?v=16"), `unversioned executable asset: ${ref}`);
   assert.ok(fs.existsSync(ref.split("?")[0]), `missing executable asset: ${ref}`);
   assert.ok(serviceWorker.includes(`"./${ref}"`), `service worker does not cache: ${ref}`);
 }
 assert.ok(
-  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v15"'),
+  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v16"'),
   "service worker cache version mismatch",
 );
 for (const id of [
@@ -496,6 +556,11 @@ assert.ok(
 const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
 assert.equal(packageJson.scripts["build:release"], "node scripts/build-release.cjs");
 assert.ok(fs.existsSync("scripts/build-release.cjs"), "release ZIP builder is missing");
+assert.ok(fs.existsSync("USAGE.txt"), "release usage guide is missing");
+assert.ok(
+  fs.readFileSync("scripts/build-release.cjs", "utf8").includes('"USAGE.txt"'),
+  "release ZIP does not include its usage guide",
+);
 assert.ok(
   fs.readFileSync("app.js", "utf8").includes("2026.1.1~2026.12.31"),
   "2026 official criteria source missing",

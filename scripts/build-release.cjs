@@ -7,6 +7,7 @@ const OUTPUT_DIR = path.join(ROOT, "dist");
 const OUTPUT_FILE = path.join(OUTPUT_DIR, "jeongcheogi-trainer.zip");
 const RELEASE_ROOT = "jeongcheogi-trainer";
 const RUNTIME_FILES = [
+  "USAGE.txt",
   "index.html",
   "styles.css",
   "theory-deep.js",

@@ -152,6 +152,25 @@ async function main() {
       await page.evaluate(() => window.JEONGCHEOGI_AUDIT.stateSnapshot().mockDraft.mode),
       "weakness",
     );
+
+    console.log("e2e: migrate legacy mock history");
+    await page.evaluate(() => {
+      localStorage.setItem("jeongcheogi_5day_trainer_v1", JSON.stringify({
+        version: 2,
+        day: 1,
+        mockBest: 80,
+        mockHistory: [{
+          id: "legacy-history",
+          completedAt: Date.now(),
+          strictScore: 80,
+          learningScore: 80,
+          results: [],
+        }],
+      }));
+    });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    assert.equal(await page.locator("#mockBest").textContent(), "-");
+    assert.ok((await page.locator(".mock-history-row").innerText()).includes("이전 방식"));
     assert.deepEqual(browserErrors, []);
 
     console.log(
@@ -165,6 +184,7 @@ async function main() {
           standardComposition: "7/4/9",
           atomicSubmitWrites: 1,
           weaknessMode: true,
+          legacyMigration: true,
           persistedHistoryRows: 20,
           browserErrors: browserErrors.length,
         },
