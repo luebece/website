@@ -232,19 +232,64 @@ for (const item of items) {
 
 assert.ok(rejectedOutputAliases >= 60, "too few unsafe output aliases were regression-tested");
 
-const ordered = items.filter((item) => engine.answerMode(item) === "ordered");
-let reversedOrderedChecked = 0;
-for (const item of ordered) {
+const mappedConcepts = [
+  "recovery",
+  "sql-group",
+  "relation-basics",
+  "integrity",
+  "sql-write",
+  "foreign-key-ddl",
+  "sql-order",
+  "packet-switch",
+  "cpu-scheduling",
+  "linux-commands",
+  "web-basics",
+  "idea-skipjack",
+  "malware-types",
+  "social-dark-data",
+  "trustzone-typo",
+  "access-control",
+  "error-detection",
+  "static-dynamic",
+  "alpha-beta",
+  "fan-in-out",
+  "boundary-equivalence",
+  "config-tools",
+  "pattern-bridge-observer",
+  "pattern-singleton-visitor",
+  "coverage-basic",
+  "stub-driver",
+  "testcase-parts",
+  "uml-relations",
+  "nonfunctional",
+  "cloud-models",
+];
+const mappedIds = [
+  "net-007",
+  "sw-001",
+  ...mappedConcepts.flatMap((id) => [`master-${id}-q1`, `master-${id}-q2`]),
+];
+for (const id of mappedIds) {
+  const item = audit.practice.find((candidate) => candidate.id === id);
+  assert.ok(item, `${id}: mapped-answer fixture missing`);
+  assert.equal(engine.answerMode(item), "mapped", `${id}: correspondence mode missing`);
+}
+
+const positional = items.filter((item) =>
+  ["ordered", "mapped"].includes(engine.answerMode(item)),
+);
+let reversedPositionalChecked = 0;
+for (const item of positional) {
   const parts = String(item.answer)
     .split(/\s*(?:,|->|→|⇒|;|\n)\s*/)
     .filter(Boolean);
   if (parts.length !== item.groups.length || parts.length < 2) continue;
   const reversed = [...parts].reverse().join(", ");
   if (engine.compactTerm(reversed) === engine.compactTerm(item.answer)) continue;
-  assert.ok(!engine.matches(reversed, item), `${item.id}: reversed ordered answer accepted`);
-  reversedOrderedChecked += 1;
+  assert.ok(!engine.matches(reversed, item), `${item.id}: reversed positional answer accepted`);
+  reversedPositionalChecked += 1;
 }
-assert.ok(reversedOrderedChecked >= 40, "too few ordered answers were regression-tested");
+assert.ok(reversedPositionalChecked >= 65, "too few positional answers were regression-tested");
 
 const unordered = audit.practice.find((item) => item.id === "cq-sql-013");
 assert.ok(unordered, "unordered fixture missing");
@@ -254,6 +299,14 @@ for (const invalid of ["중복 NULL", "중복, NULL", "unique null"]) {
   assert.ok(!engine.matches(invalid, unordered), `primary-key negation was lost: ${invalid}`);
 }
 assert.ok(engine.matches("UNIQUE, NOT NULL", unordered));
+
+for (const id of ["db-020", "net-013", "cq-sql-013"]) {
+  const item = audit.practice.find((candidate) => candidate.id === id);
+  assert.ok(item, `${id}: unordered fixture missing`);
+  assert.equal(engine.answerMode(item), "set", `${id}: unordered list became positional`);
+  const reversed = String(item.answer).split(/\s*,\s*/).reverse().join(", ");
+  assert.ok(engine.matches(reversed, item), `${id}: valid unordered reversal rejected`);
+}
 
 for (const id of ["master-sql-null-count-q1", "master-sql-null-count-q2"]) {
   const countNull = audit.practice.find((item) => item.id === id);
@@ -684,12 +737,12 @@ const assetRefs = [
   ),
 ];
 for (const ref of assetRefs) {
-  assert.ok(ref.endsWith("?v=19"), `unversioned executable asset: ${ref}`);
+  assert.ok(ref.endsWith("?v=20"), `unversioned executable asset: ${ref}`);
   assert.ok(fs.existsSync(ref.split("?")[0]), `missing executable asset: ${ref}`);
   assert.ok(serviceWorker.includes(`"./${ref}"`), `service worker does not cache: ${ref}`);
 }
 assert.ok(
-  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v19"'),
+  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v20"'),
   "service worker cache version mismatch",
 );
 for (const id of [
@@ -739,7 +792,7 @@ console.log(
       compatibleDuplicateQuestions,
       strictNumericItems: strictNumericItems.length,
       strictCompositeTheory: strictCompositeTheory.length,
-      orderedReversalsRejected: reversedOrderedChecked,
+      positionalReversalsRejected: reversedPositionalChecked,
       coverageReady: `${coverage.filter((item) => item.ready).length}/${coverage.length}`,
       modeCounts,
       executableAssets: assetRefs.length,

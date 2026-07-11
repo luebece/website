@@ -480,7 +480,7 @@ const PRACTICE = [
   card("net-004", "네트워크/OS", "netos", "high", "홉 수를 기준으로 동작하는 거리 벡터 라우팅 프로토콜은?", ["rip"], "RIP", "Routing Information Protocol.", ["라우팅", "RIP"]),
   card("net-005", "네트워크/OS", "netos", "must", "IP 패킷을 암호화/인증하며 AH와 ESP를 사용하는 보안 프로토콜은?", ["ipsec"], "IPSec", "VPN 구현에도 많이 언급된다.", ["보안", "네트워크"]),
   card("net-006", "네트워크/OS", "netos", "must", "사설 IP와 공인 IP/포트를 변환해 통신하게 하는 기술은?", ["nat"], "NAT", "Network Address Translation.", ["네트워크", "NAT"]),
-  card("net-007", "네트워크/OS", "netos", "high", "HDLC의 정보 프레임, 감독 프레임, 비번호 프레임을 영문 약자로 쓰시오.", [["i", "information"], ["s", "supervisory"], ["u", "unnumbered"]], "I-frame, S-frame, U-frame", "I는 데이터, S는 흐름/오류 제어, U는 링크 제어.", ["HDLC", "네트워크"]),
+  card("net-007", "네트워크/OS", "netos", "high", "HDLC의 정보 프레임, 감독 프레임, 비번호 프레임을 영문 약자로 쓰시오.", [["i", "information"], ["s", "supervisory"], ["u", "unnumbered"]], "I-frame, S-frame, U-frame", "I는 데이터, S는 흐름/오류 제어, U는 링크 제어.", ["HDLC", "네트워크"], { answerMode: "mapped" }),
   card("net-008", "네트워크/OS", "netos", "high", "패킷 교환 방식 중 연결형과 비연결형을 순서대로 쓰시오.", [["가상회선", "virtualcircuit"], ["데이터그램", "datagram"]], "가상회선, 데이터그램", "연결형은 경로를 설정하고, 비연결형은 패킷마다 독립적으로 간다.", ["네트워크", "패킷교환"]),
   card("net-009", "네트워크/OS", "netos", "must", "가장 오랫동안 사용되지 않은 페이지를 교체하는 알고리즘은?", ["lru"], "LRU", "Least Recently Used.", ["OS", "페이지교체"]),
   card("net-010", "네트워크/OS", "netos", "high", "사용 빈도가 가장 낮은 페이지를 교체하는 알고리즘은?", ["lfu"], "LFU", "Least Frequently Used.", ["OS", "페이지교체"]),
@@ -501,7 +501,7 @@ const PRACTICE = [
   card("sec-009", "보안", "security", "high", "웹 페이지에 악성 스크립트를 삽입해 사용자의 브라우저에서 실행시키는 공격은?", ["xss", "crosssitescripting"], "XSS", "출력 인코딩과 입력 검증으로 줄인다.", ["보안", "웹취약점"]),
   card("sec-010", "보안", "security", "mid", "정상 사이트와 비슷한 오타 도메인을 만들어 사용자를 속이는 공격은?", ["typosquatting", "타이포스쿼팅"], "Typosquatting", "URL 오타를 노리는 사회공학형 공격이다.", ["보안", "신기술"]),
 
-  card("sw-001", "SW공학", "design", "must", "응집도 중 가장 좋은 응집도와 가장 나쁜 응집도를 쓰시오.", [["기능적", "functional"], ["우연적", "coincidental"]], "기능적 응집도, 우연적 응집도", "하나의 기능만 잘 수행하면 응집도가 높다.", ["응집도", "설계"]),
+  card("sw-001", "SW공학", "design", "must", "응집도 중 가장 좋은 응집도와 가장 나쁜 응집도를 쓰시오.", [["기능적", "functional"], ["우연적", "coincidental"]], "기능적 응집도, 우연적 응집도", "하나의 기능만 잘 수행하면 응집도가 높다.", ["응집도", "설계"], { answerMode: "mapped" }),
   card("sw-002", "SW공학", "design", "high", "한 객체 상태가 바뀌면 의존 객체들에게 자동 통지하는 디자인 패턴은?", ["observer", "옵저버"], "Observer", "구독/알림 구조로 기억하면 쉽다.", ["디자인패턴", "Observer"]),
   card("sw-003", "SW공학", "design", "high", "기능 계층과 구현 계층을 분리해 연결하는 구조 패턴은?", ["bridge", "브리지"], "Bridge", "추상화와 구현을 독립적으로 확장한다.", ["디자인패턴", "Bridge"]),
   card("sw-004", "SW공학", "design", "high", "컬렉션 내부 구조를 노출하지 않고 순차 접근하게 하는 패턴은?", ["iterator", "이터레이터"], "Iterator", "반복 접근을 캡슐화한다.", ["디자인패턴", "Iterator"]),
@@ -1156,6 +1156,7 @@ function answerRule(item) {
     literal: "코드문법형: 대소문자와 괄호·꺾쇠·연산자를 정답 그대로 쓴다.",
     "sql-literal": "SQL문법형: 예약어 대소문자는 자유지만 괄호와 따옴표 속 값은 정확히 쓴다.",
     ordered: "순서형: 모든 답을 문제에서 요구한 순서대로 쓴다.",
+    mapped: "대응형: 각 설명과 같은 자리에 해당하는 답을 순서대로 쓴다.",
     set: "복수답형: 필요한 항목을 모두 쓰며 항목 순서는 상관없다.",
     partitioned: "분류형: 각 묶음 안의 답을 모두 쓰고 묶음 사이는 / 로 구분한다.",
   };

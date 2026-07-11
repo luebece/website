@@ -3,6 +3,40 @@
   const theoryItems = [];
   const practiceRows = [];
 
+  // Each answer position is tied to the description in the same position.
+  const MAPPED_CONCEPT_IDS = new Set([
+    "recovery",
+    "sql-group",
+    "relation-basics",
+    "integrity",
+    "sql-write",
+    "foreign-key-ddl",
+    "sql-order",
+    "packet-switch",
+    "cpu-scheduling",
+    "linux-commands",
+    "web-basics",
+    "idea-skipjack",
+    "malware-types",
+    "social-dark-data",
+    "trustzone-typo",
+    "access-control",
+    "error-detection",
+    "static-dynamic",
+    "alpha-beta",
+    "fan-in-out",
+    "boundary-equivalence",
+    "config-tools",
+    "pattern-bridge-observer",
+    "pattern-singleton-visitor",
+    "coverage-basic",
+    "stub-driver",
+    "testcase-parts",
+    "uml-relations",
+    "nonfunctional",
+    "cloud-models",
+  ]);
+
   const domainType = {
     DB: "db",
     SQL: "sql",
@@ -25,6 +59,7 @@
       clues,
       aliases = [],
       answerMode,
+      answerModes = [],
       partitionSizes = [],
       rounds = "22-1~26-1",
       tags = [],
@@ -68,7 +103,13 @@
         answer,
         `${oneLine} 외우는 법: ${memorize} 예: ${example}`,
         [domain, title, "기출급", `skill:${id}`, ...tags],
-        { answerMode, partitionSizes },
+        {
+          answerMode:
+            answerModes[index] ||
+            answerMode ||
+            (MAPPED_CONCEPT_IDS.has(id) ? "mapped" : undefined),
+          partitionSizes,
+        },
       ]);
     });
   }

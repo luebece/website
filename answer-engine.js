@@ -340,7 +340,7 @@
     }
 
     const correct =
-      mode === "ordered"
+      mode === "ordered" || mode === "mapped"
         ? consumeOrdered(normalizedUser, lists, 0, new Map())
         : consumeSet(normalizedUser, lists, 0, new Map());
     return { correct, mode, reason: correct ? `${mode}-match` : `${mode}-mismatch` };
@@ -395,7 +395,7 @@
     }
 
     const matchedGroups =
-      result.mode === "ordered"
+      result.mode === "ordered" || result.mode === "mapped"
         ? consumeOrderedPartial(normalizedUser, lists, 0, new Map())
         : consumeSetPartial(normalizedUser, lists, 0, new Map());
     const safeMatches = Math.max(0, matchedGroups);
