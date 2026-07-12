@@ -136,6 +136,13 @@ try {
   }
 
   console.log(JSON.stringify(report, null, 2));
+} catch (error) {
+  const message = String(error?.stack || error)
+    .replaceAll("%", "%25")
+    .replaceAll("\r", "%0D")
+    .replaceAll("\n", "%0A");
+  console.error(`::error title=L3 execution verification failed::${message}`);
+  throw error;
 } finally {
   fs.rmSync(work, { recursive: true, force: true });
 }
