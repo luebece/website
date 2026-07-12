@@ -24,7 +24,15 @@
 
   function addChapter(domain, chapter) {
     const rows = bank.chapters[domain];
-    if (!rows || rows.some((item) => item.id === chapter.id)) return;
+    if (!rows) return;
+    const existing = rows.find((item) => item.id === chapter.id);
+    if (existing) {
+      existing.practiceIds = [...new Set([
+        ...existing.practiceIds,
+        ...(chapter.practiceIds || []),
+      ])];
+      return;
+    }
     rows.push({
       id: chapter.id,
       title: chapter.title,
@@ -41,13 +49,14 @@
     const solution = normalizeSolution(spec.solution);
     const code = String(spec.code || "").trim();
     const question = `${spec.prompt || "다음 코드의 출력값을 쓰시오."}\n\n${code}`;
+    const chapterId = spec.chapter?.id || spec.chapterId;
     const options = {
       answerMode: spec.answerMode || "output",
       era: "2025+",
       difficulty: spec.difficulty || 5,
       tier: "L3",
       concepts: [...(spec.concepts || [])],
-      prerequisites: [...(spec.prerequisites || [])],
+      prerequisites: [...new Set([chapterId, ...(spec.prerequisites || [])].filter(Boolean))],
       estimatedMinutes: spec.estimatedMinutes || 8,
       traceSteps: spec.traceSteps || Math.max(8, solution.steps.length),
       sourceRounds: [...(spec.sourceRounds || [])],
@@ -76,6 +85,11 @@
       addChapter(spec.domain, {
         ...spec.chapter,
         practiceIds: [spec.id, ...(spec.chapter.practiceIds || [])],
+      });
+    } else if (spec.chapterId) {
+      addChapter(spec.domain, {
+        id: spec.chapterId,
+        practiceIds: [spec.id],
       });
     }
   }

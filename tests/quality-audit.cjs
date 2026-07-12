@@ -158,6 +158,21 @@ assert.deepEqual(
   { C: 8, Java: 8, Python: 7, SQL: 8 },
   "advanced academy chapter quota changed",
 );
+const advancedChapterIds = new Set(
+  Object.values(advanced.chapters).flatMap((chapters) => chapters.map((chapter) => chapter.id)),
+);
+const chapterPracticeIds = new Set(
+  Object.values(advanced.chapters).flatMap((chapters) =>
+    chapters.flatMap((chapter) => chapter.practiceIds),
+  ),
+);
+for (const item of l3CodeSql) {
+  assert.ok(chapterPracticeIds.has(item.id), `${item.id}: no direct advanced chapter link`);
+  assert.ok(
+    item.prerequisites.some((id) => advancedChapterIds.has(id)),
+    `${item.id}: advanced chapter missing from prerequisites`,
+  );
+}
 assert.equal(context.window.APPLIED_THEORY_COUNTS.lessons, 25);
 assert.equal(context.window.APPLIED_THEORY_COUNTS.practice, 25);
 for (const form of ["A", "B", "C", "D", "E"]) {

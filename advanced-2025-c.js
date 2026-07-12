@@ -67,6 +67,7 @@ int main(void) {
 
   add({
     id: "l3-c-dynamic-2d-02",
+    chapterId: "c-memory-dynamic-2d",
     concepts: ["double-pointer", "malloc", "modulo-index", "nested-loop"],
     prerequisites: ["academy-c-double-pointer", "academy-c-dynamic-2d"],
     answer: "18",
@@ -153,6 +154,7 @@ int main(void) {
 
   add({
     id: "l3-c-linked-list-02",
+    chapterId: "c-linked-list-rewire",
     concepts: ["linked-list", "head-insert", "search", "tail-move"],
     prerequisites: ["academy-c-pointer", "academy-c-linked-list"],
     answer: "51234",
@@ -280,6 +282,7 @@ int main(void) {
 
   add({
     id: "l3-c-function-pointer-02",
+    chapterId: "c-function-pointer-return",
     concepts: ["function-pointer-array", "loop", "dynamic-dispatch", "accumulator"],
     prerequisites: ["academy-c-function-pointer", "academy-c-trace"],
     answer: "5",
@@ -313,6 +316,7 @@ int main(void) {
 
   add({
     id: "l3-c-array-pointer-01",
+    chapterId: "c-memory-dynamic-2d",
     concepts: ["pointer-to-array", "function-parameter", "nested-loop", "mutation"],
     prerequisites: ["academy-c-array-pointer", "academy-c-pointer"],
     answer: "12",
@@ -347,6 +351,7 @@ int main(void) {
 
   add({
     id: "l3-c-double-pointer-01",
+    chapterId: "c-memory-dynamic-2d",
     concepts: ["double-pointer", "pointer-retarget", "mutation", "alias"],
     prerequisites: ["academy-c-double-pointer", "academy-c-pointer"],
     answer: "21 7 18",

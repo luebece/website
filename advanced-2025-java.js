@@ -53,6 +53,7 @@ public class Main {
 
   add({
     id: "l3-java-constructor-binding-02",
+    chapterId: "java-initialization-timeline",
     concepts: ["static-initializer", "instance-field", "constructor", "shared-state"],
     prerequisites: ["academy-java-static", "academy-java-constructor"],
     answer: "14",
@@ -126,6 +127,7 @@ public class Main {
 
   add({
     id: "l3-java-binding-02",
+    chapterId: "java-three-bindings",
     concepts: ["static-hiding", "override", "cast", "method-call"],
     answer: "12",
     code: `class Parent {
@@ -198,6 +200,7 @@ public class Main {
 
   add({
     id: "l3-java-overload-02",
+    chapterId: "java-overload-selection",
     concepts: ["primitive-overload", "widening", "boxing", "cast"],
     prerequisites: ["academy-java-overload", "academy-java-wrapper"],
     answer: "1232",
