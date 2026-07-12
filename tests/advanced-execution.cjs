@@ -68,15 +68,30 @@ function expected(question) {
 }
 
 const report = { C: "skipped", Java: "skipped", Python: 0, SQL: 0 };
+const failures = [];
+
+function verifyQuestion(question, language, execute) {
+  try {
+    const output = execute();
+    const wanted = expected(question);
+    if (output !== wanted) {
+      throw new Error(`expected ${JSON.stringify(wanted)}, actual ${JSON.stringify(output)}`);
+    }
+    return true;
+  } catch (error) {
+    failures.push(`${question.id} (${language}): ${error.message}`);
+    return false;
+  }
+}
 
 try {
   const python = findPython();
   assert.ok(python, "Python runtime is required for Python and SQL L3 verification");
 
   for (const question of questions.filter((item) => item.domain === "Python")) {
-    const output = run(python, ["-c", question.code]);
-    assert.equal(output, expected(question), `${question.id}: Python output mismatch`);
-    report.Python += 1;
+    if (verifyQuestion(question, "Python", () => run(python, ["-c", question.code]))) {
+      report.Python += 1;
+    }
   }
 
   const sqlRunner = [
@@ -87,32 +102,32 @@ try {
   ].join("\n");
   for (const question of questions.filter((item) => item.domain === "SQL")) {
     const encoded = Buffer.from(question.code, "utf8").toString("base64");
-    const output = run(python, ["-c", sqlRunner, encoded]);
-    assert.equal(output, expected(question), `${question.id}: SQL output mismatch`);
-    report.SQL += 1;
+    if (verifyQuestion(question, "SQL", () => run(python, ["-c", sqlRunner, encoded]))) {
+      report.SQL += 1;
+    }
   }
 
   if (commandAvailable("gcc")) {
     let count = 0;
     for (const question of questions.filter((item) => item.domain === "C")) {
-      const source = path.join(work, `${question.id}.c`);
-      const binary = path.join(work, `${question.id}${process.platform === "win32" ? ".exe" : ""}`);
-      fs.writeFileSync(source, question.code);
-      run("gcc", [
-        "-std=c11",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-fsanitize=address,undefined",
-        source,
-        "-o",
-        binary,
-      ]);
-      const output = run(binary, [], {
-        env: { ASAN_OPTIONS: "detect_leaks=1:halt_on_error=1" },
-      });
-      assert.equal(output, expected(question), `${question.id}: C output mismatch`);
-      count += 1;
+      if (verifyQuestion(question, "C", () => {
+        const source = path.join(work, `${question.id}.c`);
+        const binary = path.join(work, `${question.id}${process.platform === "win32" ? ".exe" : ""}`);
+        fs.writeFileSync(source, question.code);
+        run("gcc", [
+          "-std=c11",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-fsanitize=address,undefined",
+          source,
+          "-o",
+          binary,
+        ]);
+        return run(binary, [], {
+          env: { ASAN_OPTIONS: "detect_leaks=1:halt_on_error=1" },
+        });
+      })) count += 1;
     }
     report.C = count;
   } else if (isCi) {
@@ -122,19 +137,20 @@ try {
   if (commandAvailable("javac", ["-version"]) && commandAvailable("java", ["-version"])) {
     let count = 0;
     for (const question of questions.filter((item) => item.domain === "Java")) {
-      const itemDir = path.join(work, question.id);
-      fs.mkdirSync(itemDir);
-      fs.writeFileSync(path.join(itemDir, "Main.java"), question.code);
-      run("javac", ["-Xlint:all", "Main.java"], { cwd: itemDir });
-      const output = run("java", ["-cp", itemDir, "Main"], { cwd: itemDir });
-      assert.equal(output, expected(question), `${question.id}: Java output mismatch`);
-      count += 1;
+      if (verifyQuestion(question, "Java", () => {
+        const itemDir = path.join(work, question.id);
+        fs.mkdirSync(itemDir);
+        fs.writeFileSync(path.join(itemDir, "Main.java"), question.code);
+        run("javac", ["-Xlint:all", "Main.java"], { cwd: itemDir });
+        return run("java", ["-cp", itemDir, "Main"], { cwd: itemDir });
+      })) count += 1;
     }
     report.Java = count;
   } else if (isCi) {
     assert.fail("javac/java are required in CI for Java L3 verification");
   }
 
+  if (failures.length) throw new Error(failures.join("\n"));
   console.log(JSON.stringify(report, null, 2));
 } catch (error) {
   const message = String(error?.stack || error)

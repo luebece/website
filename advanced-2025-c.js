@@ -155,7 +155,7 @@ int main(void) {
     id: "l3-c-linked-list-02",
     concepts: ["linked-list", "head-insert", "search", "tail-move"],
     prerequisites: ["academy-c-pointer", "academy-c-linked-list"],
-    answer: "53124",
+    answer: "51234",
     code: `#include <stdio.h>
 #include <stdlib.h>
 
@@ -186,7 +186,7 @@ int main(void) {
 }`,
     solution: {
       summary: "1→2→3→4→5에서 5를 찾고 앞에 붙여 5→1→2→3→4를 만든다.",
-      steps: ["push 반복으로 1→2→3을 만든다.", "tail 뒤에 4와 5를 붙인다.", "prev와 curr를 함께 움직여 curr=5를 찾는다.", "prev는 4이므로 prev->next=NULL로 끝을 자른다.", "5의 next를 기존 head 1로 연결한다.", "새 head 5부터 53124를 출력한다."],
+      steps: ["push 반복으로 1→2→3을 만든다.", "tail 뒤에 4와 5를 붙인다.", "prev와 curr를 함께 움직여 curr=5를 찾는다.", "prev는 4이므로 prev->next=NULL로 끝을 자른다.", "5의 next를 기존 head 1로 연결한다.", "새 head 5부터 51234를 출력한다."],
       table: [["포인터", "탐색 끝", "역할"], ["prev", "4", "이전 끝"], ["curr", "5", "이동 노드"]],
       traps: ["push 순서를 거꾸로 계산", "prev->next를 끊지 않기", "curr->next 변경 뒤 기존 head를 잃기"],
     },
