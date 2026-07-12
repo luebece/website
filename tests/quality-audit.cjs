@@ -823,12 +823,12 @@ const assetRefs = [
   ),
 ];
 for (const ref of assetRefs) {
-  assert.ok(ref.endsWith("?v=21"), `unversioned executable asset: ${ref}`);
+  assert.ok(ref.endsWith("?v=22"), `unversioned executable asset: ${ref}`);
   assert.ok(fs.existsSync(ref.split("?")[0]), `missing executable asset: ${ref}`);
   assert.ok(serviceWorker.includes(`"./${ref}"`), `service worker does not cache: ${ref}`);
 }
 assert.ok(
-  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v21"'),
+  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v22"'),
   "service worker cache version mismatch",
 );
 for (const id of [
