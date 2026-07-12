@@ -63,6 +63,10 @@ async function main() {
   try {
     console.log("e2e: open app");
     await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    await page.getByRole("tab", { name: "코드 입문서", exact: true }).click();
+    assert.equal(await page.locator(".advanced-chapter").count(), 8);
+    assert.ok((await page.locator(".advanced-chapter").first().innerText()).includes("장문 walkthrough"));
+    await page.getByRole("tab", { name: "대시보드", exact: true }).click();
     await page.getByRole("combobox", { name: "학습일 선택" }).selectOption("3");
     await page.getByRole("tab", { name: "훈련장", exact: true }).click();
     await page.getByRole("button", { name: "정답 보기", exact: true }).click();
@@ -167,6 +171,65 @@ async function main() {
     assert.ok((await page.locator("#mockHistoryDetail").innerText()).includes("실전 표준 A형"));
 
     await page.getByRole("tab", { name: "모의고사", exact: true }).click();
+    await page.getByRole("button", { name: "2025+ 고난도", exact: true }).click();
+    await page.getByRole("button", { name: "새 시험 시작", exact: true }).click();
+    const latestComposition = await page.evaluate(() => {
+      const state = window.JEONGCHEOGI_AUDIT.stateSnapshot();
+      const byId = new Map(window.JEONGCHEOGI_AUDIT.practice.map((item) => [item.id, item]));
+      const picked = state.mockDraft.itemIds.map((id) => byId.get(id));
+      return {
+        mode: state.mockDraft.mode,
+        form: state.mockDraft.form,
+        formVersion: state.mockDraft.formVersion,
+        codeSql: picked.filter((item) => ["code", "sql"].includes(item.type)).length,
+        l2: picked.filter((item) => item.tier === "L2").length,
+        l3: picked.filter((item) => item.tier === "L3").length,
+        detailed: picked.filter((item) => item.solution?.steps?.length >= 5).length,
+      };
+    });
+    assert.deepEqual(latestComposition, {
+      mode: "latest",
+      form: "A",
+      formVersion: 1,
+      codeSql: 9,
+      l2: 3,
+      l3: 17,
+      detailed: 17,
+    });
+    await page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem("jeongcheogi_5day_trainer_v1"));
+      state.mockDraft = null;
+      localStorage.setItem("jeongcheogi_5day_trainer_v1", JSON.stringify(state));
+    });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByRole("tab", { name: "모의고사", exact: true }).click();
+    await page.getByRole("button", { name: "회차 변형", exact: true }).click();
+    await page.getByRole("combobox", { name: "회차 변형 시험 선택" }).selectOption("2025-1");
+    await page.getByRole("button", { name: "새 시험 시작", exact: true }).click();
+    const roundComposition = await page.evaluate(() => {
+      const draft = window.JEONGCHEOGI_AUDIT.stateSnapshot().mockDraft;
+      return {
+        mode: draft.mode,
+        round: draft.form,
+        version: draft.formVersion,
+        count: draft.itemIds.length,
+        unique: new Set(draft.itemIds).size,
+      };
+    });
+    assert.deepEqual(roundComposition, {
+      mode: "round",
+      round: "2025-1",
+      version: 1,
+      count: 20,
+      unique: 20,
+    });
+    await page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem("jeongcheogi_5day_trainer_v1"));
+      state.mockDraft = null;
+      localStorage.setItem("jeongcheogi_5day_trainer_v1", JSON.stringify(state));
+    });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByRole("tab", { name: "모의고사", exact: true }).click();
     await page.getByRole("button", { name: "약점 집중", exact: true }).click();
     assert.equal(await page.locator("#mockFormSelector").isVisible(), false);
     await page.getByRole("button", { name: "새 시험 시작", exact: true }).click();
@@ -250,6 +313,8 @@ async function main() {
           restoredFlag: true,
           strictOutputAliases: true,
           standardComposition: "A형 7/4/9 · C3/Java3/Python1 · 최우선7 · 13분야",
+          latestComposition: "A형 코드·SQL9 · L2 3 · L3 17 · 상세해설17",
+          roundComposition: "2025-1 · 20문항 · 중복0",
           atomicSubmitWrites: 1,
           weaknessMode: true,
           crossFormSeries: true,

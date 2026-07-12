@@ -4,6 +4,7 @@
   "scripts": {
     "build:release": "node scripts/build-release.cjs",
     "test": "node tests/quality-audit.cjs",
+    "test:exec": "node tests/advanced-execution.cjs",
     "test:e2e": "node tests/browser-e2e.cjs"
   },
   "devDependencies": {

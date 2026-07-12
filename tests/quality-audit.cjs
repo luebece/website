@@ -13,6 +13,12 @@ const scripts = [
   "exam-master-code-c.js",
   "exam-master-code-jps.js",
   "exam-master-academy.js",
+  "advanced-2025-core.js",
+  "advanced-2025-c.js",
+  "advanced-2025-java.js",
+  "advanced-2025-python-sql.js",
+  "advanced-theory-applied.js",
+  "advanced-2025-forms.js",
   "exam-coverage.js",
   "answer-engine.js",
   "app.js",
@@ -114,9 +120,74 @@ for (const item of audit.scope) {
   );
 }
 
-assert.equal(audit.practice.length, 586, "manual practice count changed");
-assert.equal(audit.theoryPractice.length, 551, "theory practice count changed");
-assert.equal(items.length, 1137, "total graded item count changed");
+assert.equal(audit.practice.length, 647, "manual practice count changed");
+assert.equal(audit.theoryPractice.length, 576, "theory practice count changed");
+assert.equal(items.length, 1223, "total graded item count changed");
+
+const advanced = context.window.ADVANCED_2025;
+assert.ok(advanced, "2025+ advanced bank missing");
+const l3CodeSql = audit.practice.filter(
+  (item) => item.tier === "L3" && ["code", "sql"].includes(item.type),
+);
+assert.equal(l3CodeSql.length, 36, "2025+ L3 code/SQL count changed");
+assert.deepEqual(
+  Object.fromEntries(
+    ["C", "Java", "Python", "SQL"].map((domain) => [
+      domain,
+      l3CodeSql.filter((item) => item.domain === domain).length,
+    ]),
+  ),
+  { C: 13, Java: 11, Python: 7, SQL: 5 },
+  "L3 language quota changed",
+);
+for (const item of l3CodeSql) {
+  const sourceLines = String(item.question).split("\n").length - 2;
+  assert.ok(sourceLines >= 15, `${item.id}: L3 source is shorter than 15 lines`);
+  assert.ok(item.concepts.length >= 3, `${item.id}: fewer than three combined concepts`);
+  assert.ok(item.prerequisites.length >= 2, `${item.id}: prerequisites missing`);
+  assert.ok(item.solution?.steps?.length >= 5, `${item.id}: detailed solution steps missing`);
+  assert.ok(item.solution?.traps?.length >= 3, `${item.id}: trap analysis missing`);
+  assert.ok(item.traceSteps >= 8, `${item.id}: trace step budget too small`);
+  assert.equal(item.era, "2025+", `${item.id}: era metadata missing`);
+}
+
+assert.deepEqual(
+  Object.fromEntries(
+    Object.entries(advanced.chapters).map(([domain, chapters]) => [domain, chapters.length]),
+  ),
+  { C: 8, Java: 8, Python: 7, SQL: 8 },
+  "advanced academy chapter quota changed",
+);
+assert.equal(context.window.APPLIED_THEORY_COUNTS.lessons, 25);
+assert.equal(context.window.APPLIED_THEORY_COUNTS.practice, 25);
+for (const form of ["A", "B", "C", "D", "E"]) {
+  const formItems = audit.buildLatestMockForm(form);
+  assert.equal(formItems.length, 20, `latest ${form}: item count changed`);
+  assert.equal(
+    formItems.filter((item) => ["code", "sql"].includes(item.type)).length,
+    9,
+    `latest ${form}: code/SQL quota changed`,
+  );
+  assert.ok(
+    formItems.filter((item) => item.tier === "L3").length >= 3,
+    `latest ${form}: L3 quota missing`,
+  );
+  assert.ok(
+    formItems.filter((item) => item.tier === "L2").length >= 3,
+    `latest ${form}: L2 bridge quota missing`,
+  );
+  assert.ok(
+    formItems.filter(
+      (item) => item.type === "code" && ["literal", "term"].includes(engine.answerMode(item)),
+    ).length <= 1,
+    `latest ${form}: too many code keyword questions`,
+  );
+}
+for (const round of Object.keys(context.window.EXAM_ROUNDS)) {
+  const roundItems = audit.buildRoundMock(round);
+  assert.equal(roundItems.length, 20, `${round}: round mock item count changed`);
+  assert.equal(new Set(roundItems.map((item) => item.id)).size, 20, `${round}: duplicate round mock item`);
+}
 
 const ids = items.map((item) => item.id);
 assert.equal(new Set(ids).size, ids.length, "duplicate graded item id");
@@ -344,7 +415,7 @@ for (const id of ["master-crypto-q1", "master-crypto-q2"]) {
 }
 
 const literalItems = items.filter((item) => engine.answerMode(item) === "literal");
-assert.equal(literalItems.length, 18, "unexpected literal item count");
+assert.equal(literalItems.length, 19, "unexpected literal item count");
 for (const item of literalItems) {
   assert.ok(engine.matches(item.answer, item), `${item.id}: literal answer rejected`);
   const spaced = [...item.answer].join(" ");
@@ -401,7 +472,7 @@ assert.ok(engine.matches("2.0", numeric("2.0")));
 assert.ok(!engine.matches("20", numeric("2.0")), "decimal point was ignored");
 
 const strictNumericItems = items.filter((item) => engine.answerMode(item) === "numeric");
-assert.equal(strictNumericItems.length, 4, "unexpected strict numeric item count");
+assert.equal(strictNumericItems.length, 17, "unexpected strict numeric item count");
 for (const item of strictNumericItems) {
   assert.ok(engine.matches(item.answer, item), `${item.id}: numeric canonical answer rejected`);
   assert.ok(!engine.matches(`-${item.answer}`, item), `${item.id}: negative sign was ignored`);
@@ -737,12 +808,12 @@ const assetRefs = [
   ),
 ];
 for (const ref of assetRefs) {
-  assert.ok(ref.endsWith("?v=20"), `unversioned executable asset: ${ref}`);
+  assert.ok(ref.endsWith("?v=21"), `unversioned executable asset: ${ref}`);
   assert.ok(fs.existsSync(ref.split("?")[0]), `missing executable asset: ${ref}`);
   assert.ok(serviceWorker.includes(`"./${ref}"`), `service worker does not cache: ${ref}`);
 }
 assert.ok(
-  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v20"'),
+  serviceWorker.includes('CACHE_NAME = "jeongcheogi-trainer-v21"'),
   "service worker cache version mismatch",
 );
 for (const id of [
@@ -761,7 +832,10 @@ for (const id of [
 assert.ok(html.includes('data-mode="review"'), "review drill mode is missing");
 assert.ok(html.includes('role="tablist"'), "tab navigation semantics are missing");
 assert.ok(html.includes('data-mock-mode="standard"'), "standard mock mode is missing");
+assert.ok(html.includes('data-mock-mode="latest"'), "latest mock mode is missing");
+assert.ok(html.includes('data-mock-mode="round"'), "round mock mode is missing");
 assert.ok(html.includes('data-mock-mode="weakness"'), "weakness mock mode is missing");
+assert.ok(html.includes('id="mockRoundSelector"'), "round mock selector is missing");
 for (const form of ["A", "B", "C", "D", "E"]) {
   assert.ok(html.includes(`data-mock-form="${form}"`), `standard ${form} form control missing`);
 }

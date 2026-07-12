@@ -527,6 +527,10 @@ const BACKUP_APP_ID = "jeongcheogi-trainer";
 const MOCK_DURATION_MS = 150 * 60 * 1000;
 const STANDARD_MOCK_FORMS = ["A", "B", "C", "D", "E"];
 const STANDARD_MOCK_FORM_VERSION = 1;
+const LATEST_MOCK_FORM_VERSION = window.ADVANCED_2025?.formVersion || 1;
+const LATEST_MOCK_FORM_IDS = window.ADVANCED_2025?.forms || {};
+const ROUND_MOCK_VERSION = 1;
+const ROUND_MOCK_ROUNDS = Object.keys(window.EXAM_ROUNDS || {});
 const STANDARD_MOCK_FORM_IDS = Object.freeze({
   A: [
     "exam-c-recursion-1", "exam-c-union-bit-1", "exam-c-double-pointer-1",
@@ -591,6 +595,7 @@ let lastMockResult = null;
 let selectedMockHistoryId = null;
 let selectedMockMode = "standard";
 let selectedMockForm = "A";
+let selectedMockRound = "2026-1";
 let storageWarningShown = false;
 let currentAcademyLang = "C";
 let currentCoverageSkill = null;
@@ -613,6 +618,19 @@ function card(id, domain, type, level, question, accept, answer, explain, tags, 
     answerMode: options.answerMode,
     partitionSizes: options.partitionSizes || [],
     wholeAccept: options.wholeAccept || [],
+    era: options.era || "core",
+    difficulty: options.difficulty || (id.startsWith("exam-") ? 3 : 1),
+    tier: options.tier || (id.startsWith("exam-") ? "L2" : "L1"),
+    concepts: options.concepts || [],
+    prerequisites: options.prerequisites || [],
+    estimatedMinutes: options.estimatedMinutes || 2,
+    traceSteps: options.traceSteps || 1,
+    sourceRounds: options.sourceRounds || [],
+    sourceType: options.sourceType || "original-training",
+    confidence: options.confidence || "reviewed",
+    solution: options.solution || null,
+    mistakes: options.mistakes || [],
+    verification: options.verification || null,
   };
 }
 
@@ -819,7 +837,8 @@ state = loadState();
 mockSession = restoreMockSession(state.mockDraft);
 if (mockSession) {
   selectedMockMode = selectableMockMode(mockSession.mode);
-  selectedMockForm = mockSession.form || "A";
+  if (mockSession.mode === "round") selectedMockRound = mockSession.form || "2026-1";
+  else selectedMockForm = mockSession.form || "A";
 }
 
 function emptyState() {
@@ -850,6 +869,8 @@ function practiceItemMap() {
 function normalizeMockMode(mode) {
   if (
     mode === "standard" ||
+    mode === "latest" ||
+    mode === "round" ||
     mode === "weakness" ||
     mode === "legacy" ||
     mode === "legacy-standard"
@@ -858,7 +879,7 @@ function normalizeMockMode(mode) {
 }
 
 function selectableMockMode(mode) {
-  return mode === "weakness" ? "weakness" : "standard";
+  return ["standard", "latest", "round", "weakness"].includes(mode) ? mode : "standard";
 }
 
 function normalizeMockForm(form) {
@@ -867,14 +888,24 @@ function normalizeMockForm(form) {
 
 function normalizeMockSeries(modeValue, formValue, formVersionValue) {
   let mode = normalizeMockMode(modeValue);
-  const form = mode === "standard" ? normalizeMockForm(formValue) : null;
+  const formMode = mode === "standard" || mode === "latest";
+  const form = formMode
+    ? normalizeMockForm(formValue)
+    : mode === "round" && ROUND_MOCK_ROUNDS.includes(formValue) ? formValue : null;
   if (mode === "standard" && !form) mode = "legacy-standard";
+  if (mode === "latest" && !form) mode = "legacy";
+  if (mode === "round" && !form) mode = "legacy";
   const parsedVersion = Math.trunc(Number(formVersionValue) || 0);
+  const normalizedFormMode = ["standard", "latest", "round"].includes(mode);
   return {
     mode,
-    form: mode === "standard" ? form : null,
-    formVersion: mode === "standard"
-      ? parsedVersion > 0 ? parsedVersion : STANDARD_MOCK_FORM_VERSION
+    form: normalizedFormMode ? form : null,
+    formVersion: normalizedFormMode
+      ? parsedVersion > 0
+        ? parsedVersion
+        : mode === "latest"
+          ? LATEST_MOCK_FORM_VERSION
+          : mode === "round" ? ROUND_MOCK_VERSION : STANDARD_MOCK_FORM_VERSION
       : null,
   };
 }
@@ -1292,6 +1323,8 @@ function formatMockDate(timestamp) {
 
 function mockModeLabel(mode, form = null) {
   if (mode === "weakness") return "약점 집중";
+  if (mode === "latest") return form ? `2025+ 고난도 ${form}형` : "2025+ 고난도";
+  if (mode === "round") return form ? `${form} 회차 변형` : "회차 변형";
   if (mode === "legacy") return "이전 방식";
   if (mode === "legacy-standard") return "이전 표준(무작위)";
   return form ? `실전 표준 ${form}형` : "실전 표준";
@@ -1299,7 +1332,7 @@ function mockModeLabel(mode, form = null) {
 
 function sameMockSeries(candidate, reference) {
   if (candidate.mode !== reference.mode) return false;
-  if (reference.mode !== "standard") return true;
+  if (!["standard", "latest", "round"].includes(reference.mode)) return true;
   return (
     candidate.form === reference.form &&
     candidate.formVersion === reference.formVersion
@@ -1461,6 +1494,24 @@ function updateStats() {
   document.getElementById("reviewDueCount").textContent = reviewDueCount;
   document.getElementById("accuracy").textContent = `${accuracy}%`;
   document.getElementById("mockBest").textContent = state.mockBest === null ? "-" : `${state.mockBest}점`;
+  const knownItems = practiceItemMap();
+  const tierAccuracy = (tier) => {
+    const tierLog = state.log
+      .filter((entry) => knownItems.get(entry.id)?.tier === tier)
+      .slice(-50);
+    return tierLog.length
+      ? `${Math.round((tierLog.filter((entry) => entry.correct).length / tierLog.length) * 100)}%`
+      : "-";
+  };
+  document.getElementById("l1Accuracy").textContent = tierAccuracy("L1");
+  document.getElementById("l2Accuracy").textContent = tierAccuracy("L2");
+  document.getElementById("l3Accuracy").textContent = tierAccuracy("L3");
+  const latestScores = state.mockHistory
+    .filter((entry) => entry.mode === "latest")
+    .map((entry) => entry.strictScore);
+  document.getElementById("latestMockBest").textContent = latestScores.length
+    ? `${Math.max(...latestScores)}점`
+    : "-";
   const legacyMockBest = document.getElementById("legacyMockBest");
   legacyMockBest.hidden = state.legacyMockBest === null;
   legacyMockBest.textContent = state.legacyMockBest === null
@@ -1533,7 +1584,7 @@ function renderTheory() {
   const root = document.getElementById("theoryGrid");
   const items = THEORY_ITEMS.filter((item) => {
     const haystack = normalize(
-      `${item.title} ${(item.aliases || []).join(" ")} ${item.oneLine} ${item.why} ${item.memorize} ${item.example} ${item.tags.join(" ")}`,
+      `${item.title} ${(item.aliases || []).join(" ")} ${item.oneLine} ${item.why} ${item.memorize} ${item.example} ${(item.compareWith || []).join(" ")} ${(item.workedSteps || []).join(" ")} ${item.tags.join(" ")}`,
     );
     const heatOk = filter === "all" || item.heat === filter;
     const domainOk = domainFilter === "all" || item.tags.includes(domainFilter);
@@ -1566,6 +1617,38 @@ function renderTheory() {
             <strong>예시</strong>
             <p>${escapeHtml(item.example)}</p>
           </div>
+          ${
+            item.workedSteps?.length
+              ? `<div class="theory-block applied-theory-block">
+                  <strong>적용 문제 푸는 순서</strong>
+                  <ol>${item.workedSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
+                </div>`
+              : ""
+          }
+          ${
+            item.diagram
+              ? `<div class="theory-block">
+                  <strong>그림으로 보기</strong>
+                  <pre class="memory-diagram">${escapeHtml(item.diagram)}</pre>
+                </div>`
+              : ""
+          }
+          ${
+            item.compareWith?.length
+              ? `<div class="theory-block">
+                  <strong>헷갈리는 개념 비교</strong>
+                  <ul>${item.compareWith.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+                </div>`
+              : ""
+          }
+          ${
+            item.traps?.length
+              ? `<div class="theory-block trap-block">
+                  <strong>자주 틀리는 답</strong>
+                  <ul>${item.traps.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+                </div>`
+              : ""
+          }
           <div class="theory-block">
             <strong>이후 풀 문제</strong>
             <p>${escapeHtml(item.linked)}</p>
@@ -1575,6 +1658,42 @@ function renderTheory() {
       `,
     )
     .join("");
+}
+
+function renderSolutionTable(rows = []) {
+  if (!rows.length) return "";
+  return `
+    <div class="solution-table-wrap">
+      <table class="solution-table">
+        <tbody>
+          ${rows
+            .map(
+              (row, rowIndex) => `<tr>${row
+                .map((cell) => `<${rowIndex === 0 ? "th" : "td"}>${escapeHtml(cell)}</${rowIndex === 0 ? "th" : "td"}>`)
+                .join("")}</tr>`,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderDetailedSolution(item) {
+  const solution = item?.solution;
+  if (!solution?.steps?.length) return "";
+  return `
+    <details class="detailed-solution" open>
+      <summary>단계별 해설</summary>
+      <ol>${solution.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
+      ${renderSolutionTable(solution.table)}
+      ${
+        solution.traps?.length
+          ? `<div class="solution-traps"><strong>오답 함정</strong><ul>${solution.traps.map((trap) => `<li>${escapeHtml(trap)}</li>`).join("")}</ul></div>`
+          : ""
+      }
+    </details>
+  `;
 }
 
 function renderAcademyPatternSection(lesson) {
@@ -1663,6 +1782,51 @@ function renderAcademyFinalChecklist(lesson) {
   `;
 }
 
+function renderAcademyAdvancedChapters(lesson) {
+  const chapters = lesson.advancedChapters || [];
+  if (!chapters.length) return "";
+  return `
+    <section class="academy-section advanced-academy-section">
+      <div class="section-heading-row">
+        <div>
+          <span class="pill warn">2025+ L3 연결</span>
+          <h3>최신 복합 문제로 올라가는 고급 장</h3>
+        </div>
+        <strong>${chapters.length}개 장</strong>
+      </div>
+      <div class="advanced-chapter-list">
+        ${chapters
+          .map(
+            (chapter, index) => `
+              <details class="academy-card advanced-chapter" ${index === 0 ? "open" : ""}>
+                <summary>
+                  <span class="pill">L1→L3</span>
+                  <strong>${escapeHtml(chapter.title)}</strong>
+                </summary>
+                <p>${escapeHtml(chapter.concept)}</p>
+                <pre class="memory-diagram">${escapeHtml(chapter.memory)}</pre>
+                <ol>${chapter.bridgeSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
+                ${
+                  chapter.walkthrough
+                    ? `<div class="advanced-walkthrough">
+                        <span class="pill warn">장문 walkthrough</span>
+                        <pre class="code-block"><code>${escapeHtml(chapter.walkthrough.code)}</code></pre>
+                        <ol>${chapter.walkthrough.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
+                        ${renderSolutionTable(chapter.walkthrough.table)}
+                        <p class="output-line"><strong>결과:</strong> ${escapeHtml(chapter.walkthrough.output)}</p>
+                      </div>`
+                    : ""
+                }
+                <p><strong>연결 문제:</strong> ${chapter.practiceIds.map((id) => `<code>${escapeHtml(id)}</code>`).join(", ")}</p>
+              </details>
+            `,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderCodeAcademy() {
   const academy = window.CODE_SQL_ACADEMY || {};
   const lesson = academy[currentAcademyLang] || academy.C;
@@ -1721,6 +1885,8 @@ function renderCodeAcademy() {
     </section>
 
     ${renderAcademyTraceRules(lesson)}
+
+    ${renderAcademyAdvancedChapters(lesson)}
 
     <section class="academy-section">
       <h3>핵심 문법</h3>
@@ -1913,7 +2079,7 @@ function renderQuestion() {
   currentQuestion = next.id === currentQuestion?.id && pool.length > 1 ? pickWeighted(pool) : next;
   document.getElementById("questionDomain").textContent = currentQuestion.domain;
   document.getElementById("questionLevel").textContent =
-    currentQuestion.level === "must" ? "최빈출" : currentQuestion.level.toUpperCase();
+    `${currentQuestion.level === "must" ? "최빈출" : currentQuestion.level.toUpperCase()} · ${currentQuestion.tier}${currentQuestion.era === "2025+" ? " · 2025+" : ""} · ${currentQuestion.estimatedMinutes}분`;
   document.getElementById("questionText").textContent = currentQuestion.question;
   document.getElementById("answerRule").textContent = answerRule(currentQuestion);
   document.getElementById("solveGuide").innerHTML = renderSolveGuide(currentQuestion);
@@ -1941,6 +2107,7 @@ function gradeCurrent() {
     <strong>${correct ? "정답" : "오답"}</strong><br />
     정답: ${escapeHtml(currentQuestion.answer)}<br />
     ${escapeHtml(currentQuestion.explain)}
+    ${renderDetailedSolution(currentQuestion)}
   `;
   updateStats();
 }
@@ -1964,7 +2131,7 @@ function showCurrentAnswer() {
   if (feedback.dataset.revealedFor === currentQuestion.id) return;
   feedback.dataset.revealedFor = currentQuestion.id;
   feedback.className = "feedback wrong";
-  feedback.innerHTML = `<strong>정답 보기</strong><br />${escapeHtml(currentQuestion.answer)}<br />${escapeHtml(currentQuestion.explain)}`;
+  feedback.innerHTML = `<strong>정답 보기</strong><br />${escapeHtml(currentQuestion.answer)}<br />${escapeHtml(currentQuestion.explain)}${renderDetailedSolution(currentQuestion)}`;
   if (!currentQuestionGraded) {
     currentQuestionGraded = true;
     document.getElementById("checkAnswer").disabled = true;
@@ -2032,6 +2199,38 @@ function buildStandardMockForm(form, examPool = poolByMode("exam")) {
   return picked;
 }
 
+function buildLatestMockForm(form, examPool = poolByMode("exam")) {
+  const safeForm = normalizeMockForm(form) || "A";
+  const ids = LATEST_MOCK_FORM_IDS[safeForm];
+  if (!Array.isArray(ids) || ids.length !== 20) {
+    throw new Error(`2025+ 고난도 ${safeForm}형 구성이 올바르지 않습니다.`);
+  }
+  const knownItems = new Map(examPool.map((item) => [item.id, item]));
+  const picked = ids.map((id) => knownItems.get(id));
+  if (picked.some((item) => !item)) {
+    throw new Error(`2025+ 고난도 ${safeForm}형에 문제은행에서 찾을 수 없는 문항이 있습니다.`);
+  }
+  return picked;
+}
+
+function buildRoundMock(round, examPool = poolByMode("exam")) {
+  const safeRound = ROUND_MOCK_ROUNDS.includes(round) ? round : "2026-1";
+  const knownItems = new Map(examPool.map((item) => [item.id, item]));
+  const coverageRows = (window.EXAM_COVERAGE || []).filter((item) => item.round === safeRound);
+  const used = new Set();
+  const picked = coverageRows.map((row) => {
+    const candidates = row.practiceIds.filter((id) => knownItems.has(id));
+    const id = candidates.find((candidate) => !used.has(candidate)) || candidates[0];
+    if (!id) throw new Error(`${safeRound} ${row.number}번에 연결된 변형문제가 없습니다.`);
+    used.add(id);
+    return knownItems.get(id);
+  });
+  if (picked.length !== 20 || new Set(picked.map((item) => item.id)).size !== 20) {
+    throw new Error(`${safeRound} 회차 변형은 서로 다른 20문항이어야 합니다.`);
+  }
+  return picked;
+}
+
 function startMock() {
   if (mockSession && !confirm("진행 중인 시험을 버리고 새 시험을 시작할까요?")) return;
   const examPool = poolByMode("exam");
@@ -2049,6 +2248,10 @@ function startMock() {
 
   if (selectedMockMode === "standard" && examPool.length) {
     picked.push(...buildStandardMockForm(selectedMockForm, examPool));
+  } else if (selectedMockMode === "latest" && examPool.length) {
+    picked.push(...buildLatestMockForm(selectedMockForm, examPool));
+  } else if (selectedMockMode === "round" && examPool.length) {
+    picked.push(...buildRoundMock(selectedMockRound, examPool));
   } else if (examPool.length) {
     draw(examPool.filter((item) => item.type === "code"), 7);
     draw(examPool.filter((item) => item.type === "sql" || item.type === "db"), 4);
@@ -2060,8 +2263,14 @@ function startMock() {
     version: 1,
     id: `mock-${startedAt}`,
     mode: selectedMockMode,
-    form: selectedMockMode === "standard" ? selectedMockForm : null,
-    formVersion: selectedMockMode === "standard" ? STANDARD_MOCK_FORM_VERSION : null,
+    form: ["standard", "latest"].includes(selectedMockMode)
+      ? selectedMockForm
+      : selectedMockMode === "round" ? selectedMockRound : null,
+    formVersion: selectedMockMode === "standard"
+      ? STANDARD_MOCK_FORM_VERSION
+      : selectedMockMode === "latest"
+        ? LATEST_MOCK_FORM_VERSION
+        : selectedMockMode === "round" ? ROUND_MOCK_VERSION : null,
     itemIds: picked.map((item) => item.id),
     index: 0,
     answers: {},
@@ -2169,9 +2378,17 @@ function syncMockModeButtons() {
   });
   const formSelector = document.getElementById("mockFormSelector");
   const showStandardForms =
-    selectedMockMode === "standard" &&
-    (!mockSession || mockSession.mode === "standard");
+    ["standard", "latest"].includes(selectedMockMode) &&
+    (!mockSession || mockSession.mode === selectedMockMode);
   if (formSelector) formSelector.hidden = !showStandardForms;
+  const roundSelector = document.getElementById("mockRoundSelector");
+  const showRoundSelector =
+    selectedMockMode === "round" && (!mockSession || mockSession.mode === "round");
+  if (roundSelector) {
+    roundSelector.hidden = !showRoundSelector;
+    roundSelector.disabled = Boolean(mockSession);
+    roundSelector.value = selectedMockRound;
+  }
   document.querySelectorAll(".mock-form").forEach((button) => {
     const active = button.dataset.mockForm === selectedMockForm;
     button.classList.toggle("active", active);
@@ -2191,7 +2408,11 @@ function renderMock() {
     }
     root.innerHTML = selectedMockMode === "standard"
       ? `<p class="empty-state">${selectedMockForm}형은 언제 시작해도 같은 코드 7문항, SQL/DB 4문항, 이론 9문항이 나온다.</p>`
-      : `<p class="empty-state">새 시험을 누르면 오답·복습 상태를 반영한 코드 7문항, SQL/DB 4문항, 이론 9문항을 낸다.</p>`;
+      : selectedMockMode === "latest"
+        ? `<p class="empty-state">${selectedMockForm}형은 2025+ 복합 코드·SQL 9문항과 계산·적용 이론 11문항으로 고정된다.</p>`
+        : selectedMockMode === "round"
+          ? `<p class="empty-state">${selectedMockRound} 공개 복원 범위의 20개 요구기술을 원문이 아닌 독립 변형문제로 고정 출제한다.</p>`
+        : `<p class="empty-state">새 시험을 누르면 오답·복습 상태를 반영한 코드 7문항, SQL/DB 4문항, 이론 9문항을 낸다.</p>`;
     return;
   }
   if (mockSession.deadline <= Date.now()) {
@@ -2226,7 +2447,7 @@ function renderMock() {
       <div class="mock-question">
         <div class="question-head">
           <span class="mock-progress">${mockSession.index + 1} / ${mockSession.items.length}</span>
-          <span class="pill">${mockModeLabel(mockSession.mode, mockSession.form)} · ${escapeHtml(item.domain)}</span>
+          <span class="pill">${mockModeLabel(mockSession.mode, mockSession.form)} · ${escapeHtml(item.domain)} · ${escapeHtml(item.tier)}${item.era === "2025+" ? " · 2025+" : ""}</span>
         </div>
         <pre class="question-text">${escapeHtml(item.question)}</pre>
         <label class="answer-box">
@@ -2356,6 +2577,7 @@ function renderMockResult(result) {
             내 답: ${escapeHtml(entry.input || "(미응답)")}<br />
             정답: ${escapeHtml(entry.item.answer)}<br />
             ${escapeHtml(entry.item.explain)}
+            ${renderDetailedSolution(entry.item)}
           </div>
         `)
         .join("")}
@@ -2387,7 +2609,8 @@ async function importProgress(file) {
     lastMockResult = null;
     selectedMockHistoryId = null;
     selectedMockMode = selectableMockMode(mockSession?.mode);
-    selectedMockForm = mockSession?.form || "A";
+    if (mockSession?.mode === "round") selectedMockRound = mockSession.form || "2026-1";
+    else selectedMockForm = mockSession?.form || "A";
     saveState();
     renderDayPlan();
     renderQuestion();
@@ -2424,16 +2647,25 @@ function bindEvents() {
       if (mockSession) return;
       selectedMockMode = button.dataset.mockMode;
       syncMockModeButtons();
+      renderMock();
     });
   });
 
   document.querySelectorAll(".mock-form").forEach((button) => {
     button.addEventListener("click", () => {
-      if (mockSession || selectedMockMode !== "standard") return;
+      if (mockSession || !["standard", "latest"].includes(selectedMockMode)) return;
       selectedMockForm = normalizeMockForm(button.dataset.mockForm) || "A";
       syncMockModeButtons();
       renderMock();
     });
+  });
+
+  document.getElementById("mockRoundSelector").addEventListener("change", (event) => {
+    if (mockSession || selectedMockMode !== "round") return;
+    selectedMockRound = ROUND_MOCK_ROUNDS.includes(event.target.value)
+      ? event.target.value
+      : "2026-1";
+    renderMock();
   });
 
   document.getElementById("daySelect").addEventListener("change", (event) => {
@@ -2561,6 +2793,7 @@ function bindEvents() {
     selectedMockHistoryId = null;
     selectedMockMode = "standard";
     selectedMockForm = "A";
+    selectedMockRound = "2026-1";
     saveState();
     renderDayPlan();
     renderQuestion();
@@ -2614,6 +2847,8 @@ function boot() {
 
 window.JEONGCHEOGI_AUDIT = Object.freeze({
   analyzeMockDomains,
+  buildLatestMockForm,
+  buildRoundMock,
   buildStandardMockForm,
   practice: PRACTICE,
   scope: SCOPE_ITEMS,
